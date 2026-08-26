@@ -1,34 +1,53 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "webapp",
-  "compatibility_date": "2026-08-20",
+  "compatibility_date": "2024-01-01",
   "pages_build_output_dir": "./dist",
-  "compatibility_flags": [
-    "nodejs_compat"
+  "compatibility_flags": ["nodejs_compat"],
+
+  // D1 relational database (users, questions, threaded responses, ...).
+  // Local dev automatically uses a local SQLite file under .wrangler/state
+  // when running `wrangler pages dev --d1=DB --local`. The database_id
+  // below must be filled in after `npx wrangler d1 create webapp-production`
+  // (see docs/setup.md). Left empty here on purpose — no fake ID committed.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "webapp-production",
+      // Placeholder UUID for local `--local` development only. Wrangler
+      // requires a non-empty, UUID-shaped value even in local mode; it is
+      // NOT used to reach any real Cloudflare resource in --local mode.
+      // Before the FIRST real deploy, replace this with the real ID
+      // returned by `npx wrangler d1 create webapp-production` (see
+      // docs/setup.md). This is intentionally not a secret.
+      "database_id": "00000000-0000-0000-0000-000000000000"
+    }
+  ],
+
+  // R2 object storage — used by StorageService for generated PDF files.
+  // Create with: npx wrangler r2 bucket create webapp-bucket
+  "r2_buckets": [
+    {
+      "binding": "R2",
+      "bucket_name": "webapp-bucket"
+    }
   ]
+
+  // Cloudflare Browser Rendering (used by PdfAdapter to render Persian/RTL
+  // HTML -> PDF via a real Chromium instance) is NOT a static wrangler.jsonc
+  // binding on this platform version — it is accessed via the account-level
+  // REST API (`/client/v4/accounts/{account_id}/browser-rendering/*`) using
+  // the CLOUDFLARE_API_TOKEN secret. See src/adapters/pdf/browser-rendering.pdf-adapter.ts
+  // and docs/decisions.md for details and the local fallback strategy.
+
+  // KV namespaces are intentionally NOT declared here: this project uses
+  // BYOK deploy (per client decision), so kv_namespaces MAY be added later
+  // for local dev rate-limit counters if needed. If this project is ever
+  // routed through the platform's Hosted Deploy instead, kv_namespaces
+  // must be removed (Hosted Deploy only supports d1_databases/r2_buckets) —
+  // use the `settings`/D1-backed counters fallback in that case.
+
   // "vars": {
-  //   "MY_VAR": "my-variable"
-  // },
-  // "kv_namespaces": [
-  //   {
-  //     "binding": "MY_KV_NAMESPACE",
-  //     "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-  //   }
-  // ],
-  // "r2_buckets": [
-  //   {
-  //     "binding": "MY_BUCKET",
-  //     "bucket_name": "my-bucket"
-  //   }
-  // ],
-  // "d1_databases": [
-  //   {
-  //     "binding": "MY_DB",
-  //     "database_name": "my-database",
-  //     "database_id": ""
-  //   }
-  // ],
-  // "ai": {
-  //   "binding": "AI"
+  //   "APP_ENV": "production"
   // }
 }

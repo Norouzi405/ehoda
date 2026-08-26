@@ -1,0 +1,16 @@
+# Copy this file to .dev.vars for local development (never commit .dev.vars itself).
+# In production, set these with: npx wrangler secret put <NAME>
+
+# --- SMS (Kavenegar) ---
+SMS_PROVIDER=mock
+KAVENEGAR_API_KEY=
+
+# --- Cloudflare Browser Rendering (PDF generation) ---
+CLOUDFLARE_ACCOUNT_ID=
+CLOUDFLARE_API_TOKEN=
+
+# --- Cloudflare Turnstile (CAPTCHA) ---
+TURNSTILE_SECRET_KEY=
+
+# --- Signing secret for time-limited R2 file download links ---
+FILE_SIGN_SECRET=change-me-to-a-long-random-string

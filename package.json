@@ -3,18 +3,34 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:sandbox": "wrangler pages dev dist --d1=DB --local --ip 0.0.0.0 --port 3000",
     "build": "vite build",
-    "preview": "wrangler pages dev",
-    "deploy": "npm run build && wrangler pages deploy",
-    "cf-typegen": "wrangler types --env-interface CloudflareBindings"
+    "preview": "wrangler pages dev dist",
+    "deploy": "npm run build && wrangler pages deploy dist --project-name webapp",
+    "cf-typegen": "wrangler types --env-interface CloudflareBindings",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean-port": "fuser -k 3000/tcp 2>/dev/null || true",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply webapp-production --local",
+    "db:migrate:prod": "wrangler d1 migrations apply webapp-production",
+    "db:seed:local": "wrangler d1 execute webapp-production --local --file=./seeders/seed.sql",
+    "db:console:local": "wrangler d1 execute webapp-production --local"
   },
   "dependencies": {
-    "hono": "^4.13.3"
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.13.5",
+    "jalaali-js": "^2.0.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@cloudflare/puppeteer": "^1.4.0",
+    "@cloudflare/workers-types": "^5.20260826.1",
     "@hono/vite-build": "^1.11.1",
     "@hono/vite-dev-server": "^0.26.1",
+    "drizzle-kit": "^0.31.10",
     "vite": "^8.1.4",
+    "vitest": "^4.1.11",
     "wrangler": "^4.110.0"
   }
 }
