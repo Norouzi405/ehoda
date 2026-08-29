@@ -95,11 +95,15 @@ export const modelHasPermissions = sqliteTable('model_has_permissions', {
 
 /**
  * OTP tokens. Code is ALWAYS stored hashed (spec 8.2, 14.1) — never plaintext.
- * Rate limiting counters live in KV (fast path); this table is the durable
- * audit trail (spec 14.3: OTP events must be logged).
+ * Rate limiting is computed by querying this table directly (D-006: no KV
+ * source-of-truth), which also gives us the durable audit trail required by
+ * spec 14.3 for free. `requestId` is an opaque, unguessable public handle
+ * returned to the client instead of the internal auto-increment `id`
+ * (see docs/api.md, POST /api/auth/otp/request).
  */
 export const otpTokens = sqliteTable('otp_tokens', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  requestId: text('request_id').notNull().unique(),
   phoneNumber: text('phone_number').notNull(),
   codeHash: text('code_hash').notNull(),
   purpose: text('purpose').notNull().default('login'), // login | verify
@@ -112,6 +116,26 @@ export const otpTokens = sqliteTable('otp_tokens', {
   createdAt: text('created_at').notNull().default(nowIso),
 }, (t) => ({
   phoneIdx: index('idx_otp_tokens_phone').on(t.phoneNumber),
+  requestIdIdx: index('idx_otp_tokens_request_id').on(t.requestId),
+}))
+
+/**
+ * Session store for cookie-based auth (spec §8, docs/api.md). The cookie
+ * carries an opaque random token; only its SHA-256 hash is persisted here
+ * (same "never store the secret itself" posture as otp_tokens.codeHash),
+ * so a leaked database dump can never be replayed as a live session.
+ */
+export const sessions = sqliteTable('sessions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull().references(() => users.id),
+  tokenHash: text('token_hash').notNull().unique(),
+  userAgent: text('user_agent'),
+  ipAddress: text('ip_address'),
+  expiresAt: text('expires_at').notNull(),
+  lastSeenAt: text('last_seen_at'),
+  createdAt: text('created_at').notNull().default(nowIso),
+}, (t) => ({
+  userIdx: index('idx_sessions_user').on(t.userId),
 }))
 
 /** Moderator-imposed restrictions on a user (spec 5.2.E, 14.3). */

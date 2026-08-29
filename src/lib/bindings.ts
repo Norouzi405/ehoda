@@ -19,6 +19,8 @@ export type Bindings = {
   /** API token with "Browser Rendering: Edit" permission, used by BrowserRenderingPdfAdapter. */
   CLOUDFLARE_API_TOKEN?: string
   TURNSTILE_SECRET_KEY?: string
+  /** Public Turnstile site key, safe to expose to the browser (unlike TURNSTILE_SECRET_KEY). */
+  TURNSTILE_SITE_KEY?: string
   /** Secret used to sign time-limited R2 file download URLs (see R2StorageService). */
   FILE_SIGN_SECRET?: string
 }
