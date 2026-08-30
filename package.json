@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:sandbox": "wrangler pages dev dist --d1=DB --local --ip 0.0.0.0 --port 3000",
+    "dev:sandbox": "wrangler pages dev dist --d1=DB --local --persist-to=.wrangler/state --ip 0.0.0.0 --port 3000",
     "build": "vite build",
     "preview": "wrangler pages dev dist",
     "deploy": "npm run build && wrangler pages deploy dist --project-name webapp",
@@ -12,10 +12,10 @@
     "test:watch": "vitest",
     "clean-port": "fuser -k 3000/tcp 2>/dev/null || true",
     "db:generate": "drizzle-kit generate",
-    "db:migrate:local": "wrangler d1 migrations apply webapp-production --local",
+    "db:migrate:local": "wrangler d1 migrations apply webapp-production --local --persist-to=.wrangler/state",
     "db:migrate:prod": "wrangler d1 migrations apply webapp-production",
-    "db:seed:local": "wrangler d1 execute webapp-production --local --file=./seeders/seed.sql",
-    "db:console:local": "wrangler d1 execute webapp-production --local"
+    "db:seed:local": "wrangler d1 execute webapp-production --local --persist-to=.wrangler/state --file=./seeders/seed.sql",
+    "db:console:local": "wrangler d1 execute webapp-production --local --persist-to=.wrangler/state"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",

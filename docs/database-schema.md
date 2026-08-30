@@ -10,7 +10,7 @@ PostgreSQL migration mapping required by Portability Rule 3.2.
 
 | File | Tables |
 |---|---|
-| `schema/users.ts` | users, profiles, roles, permissions, model_has_roles, role_permissions, model_has_permissions, otp_tokens, user_restrictions, notification_preferences |
+| `schema/users.ts` | users, profiles, roles, permissions, model_has_roles, role_permissions, model_has_permissions, otp_tokens, sessions, user_restrictions, notification_preferences |
 | `schema/professionals.ts` | expertise_areas, professional_profiles, professional_expertise_areas |
 | `schema/content.ts` | content_categories, content_tags, age_groups, contents, content_tag_links, related_contents, content_revisions, content_sources |
 | `schema/questions.ts` | questions, question_versions, question_status_histories, question_assignments, question_internal_notes |
@@ -69,6 +69,31 @@ Design rationale:
 - `is_tombstone` + a placeholder body string is how deletion is
   implemented for any response with existing replies, so the thread
   structure never breaks (spec §9.7).
+
+## Auth: `sessions` table + `otp_tokens.request_id` (Phase 1, migration 0001)
+
+```
+sessions
+├── id (PK)
+├── user_id            → FK users.id
+├── token_hash         (UNIQUE; sha256 hex of the raw session token —
+│                        the raw token itself is NEVER persisted, see
+│                        decisions.md D-010)
+├── user_agent
+├── ip_address
+├── expires_at         (30-day TTL from issuance, see D-010)
+├── last_seen_at       (touched on each resolved request)
+└── created_at
+```
+
+`otp_tokens` gained a `request_id` column (`TEXT NOT NULL UNIQUE`, indexed)
+so the client-facing OTP verify step never needs to expose the phone
+number or the raw/hashed code — only an opaque `req_...` handle returned
+by `POST /api/auth/otp/request` (see `docs/api.md`).
+
+PostgreSQL mapping for both additions follows the same table above:
+`token_hash`/`request_id` → `text UNIQUE`, `expires_at`/`last_seen_at`
+→ `timestamptz`.
 
 ## Full-text search (MVP)
 

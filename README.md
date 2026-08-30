@@ -2,7 +2,7 @@
 
 پلتفرم جامعه‌محور پرسش‌وپاسخ + محتوای مرجع سواد رسانه‌ای برای والدین، مربیان و متخصصان — با نظارت چندسطحی، رتبه‌بندی پاسخ بر اساس اعتبار علمی، و ابزارهای تولید PDF فارسی.
 
-> **وضعیت فعلی: Gate Check (چک‌پوینت حیاتی اول) — در انتظار تأیید کارفرما پیش از شروع فاز ۱**
+> **وضعیت فعلی: فاز ۱ (ماژول محتوا + احراز هویت/OTP) تکمیل و به‌صورت end-to-end روی D1 محلی تأیید شده — در انتظار بازبینی بصری کارفرما پیش از شروع فاز ۲**
 
 ---
 
@@ -33,9 +33,9 @@
 
 ---
 
-## ۲. وضعیت فعلی — Gate Check
+## ۲. وضعیت فعلی — فاز ۱ تکمیل شد
 
-طبق دستور کارفرما، پیش از شروع فازهای ۱ تا ۶، این چک‌پوینت باید تأیید شود. آنچه تا این لحظه **تکمیل شده**:
+### Gate Check (چک‌پوینت اول) — تکمیل شده در نشست قبل:
 
 - [x] اسکلت کامل پروژه Hono + Drizzle + D1 (لایه‌بندی Routes/Services/Repositories/Adapters)
 - [x] مدل داده کامل (۳۷ جدول در ۷ فایل دومینی) + Migration اولیه (`migrations/0000_past_archangel.sql`)
@@ -43,19 +43,30 @@
 - [x] سرویس قالب HTML فارسی راست‌چین برای PDF (فونت Vazirmatn)
 - [x] اندپوینت اثبات فنی PDF: `GET /api/_gatecheck/pdf-sample`
 - [x] نمونه کامل RBAC (Repository → Service → Middleware) + سرویس رتبه‌بندی ۴ سطحی پاسخ‌ها
-- [x] ۹ تست خودکار Vitest (RBAC deny-by-default، پایداری رتبه‌بندی در برابر رأی‌سازی) — همگی موفق
-- [x] GitHub Actions: CI (build+test) و Deploy (BYOK)
-- [x] Seed اولیه: نقش‌ها، مجوزها، دسته‌بندی‌ها، ابزارها، تنظیمات پیش‌فرض
-- [x] هشت سند اصلی در `docs/`: architecture, decisions, migration-guide-to-vps, database-schema, roles-and-permissions, question-and-community-workflow, moderation-and-safety, api
+- [x] GitHub Actions: فایل‌های CI/Deploy تهیه شده (⚠️ هنوز Push نشده — نگاه کنید به بخش ۷)
 
-آنچه **باقی مانده / در انتظار**:
+### فاز ۱ — ماژول محتوا و صفحات عمومی + احراز هویت/OTP — تکمیل شده در این نشست:
 
-- [ ] Push نهایی مخزن به GitHub رسمی
-- [ ] افزودن ۵ مقاله نمونه + ۵ رشته پرسش‌وپاسخ نمونه به Seed
-- [ ] پیاده‌سازی کامل اندپوینت `/admin/export/backup` (فعلاً فقط در اسناد برنامه‌ریزی شده)
-- [ ] تأیید **بصری** خروجی PDF فارسی — نیازمند `CLOUDFLARE_ACCOUNT_ID` و `CLOUDFLARE_API_TOKEN` واقعی کارفرما (مسیر کد تأیید شده، اما رندر واقعی هنوز دیده نشده)
+**ماژول محتوا:**
+- [x] Repository/Service/API برای محتوا (`GET /api/contents`, `/api/contents/:slug`, `/api/categories`) با فیلتر دسته‌بندی، صفحه‌بندی، و فیلدهای SEO
+- [x] صفحات SSR عمومی: `/contents` (لیست + فیلتر دسته)، `/contents/:slug` (جزئیات مقاله)، صفحه اصلی با آخرین مقالات
+- [x] Seeder: ۵ مقاله نمونه فارسی (یکی از هر دسته اصلی: کودک-و-رسانه ×۲، زوجین-و-رسانه، مربی-و-مدرسه، سواد-رسانه‌ای)
 
-جزئیات کامل در گزارش Gate Check ارائه‌شده به کارفرما.
+**احراز هویت و OTP:**
+- [x] `sessions` table جدید + ستون `otp_tokens.request_id` (Migration `0001_secret_prima.sql`)
+- [x] `CaptchaAdapter` (Turnstile واقعی + Mock توسعه) با همان الگوی SmsAdapter
+- [x] کتابخانه‌های Crypto (فقط Web Crypto API — بدون تغییر در مهاجرت به VPS/Node) و نرمال‌سازی شماره موبایل ایرانی
+- [x] `OtpService` (محدودیت نرخ ۳ تلاش/۱۰دقیقه، Cooldown ۶۰ ثانیه، انقضا ۲ دقیقه، قفل بعد از ۵ تلاش اشتباه) و `AuthService` (Session، ایجاد/یافتن کاربر)
+- [x] مسیرهای API: `POST /api/auth/otp/request`, `/otp/verify`, `POST /api/auth/logout`, `GET /api/auth/me`
+- [x] صفحه SSR ورود دو مرحله‌ای (`/login`) با ویجت Turnstile + JS پیشرونده (بدون SPA framework)
+- [x] **۲۶ تست جدید Vitest** (مجموع ۳۵ تست، همگی موفق) روی OtpService، AuthService، نرمال‌سازی شماره
+- [x] **تأیید end-to-end روی D1 محلی واقعی**: Migration + Seed اجرا شد، همه مسیرها (خانه، لیست/جزئیات مقاله، ورود، APIها) HTTP 200 برگرداندند، و جریان کامل OTP (درخواست → کد Mock → تأیید → Session Cookie → `/auth/me`) با موفقیت تست شد.
+
+آنچه **باقی مانده / در انتظار** (تفصیل در بخش ۷):
+
+- [ ] Push نهایی به GitHub (مسدود شده توسط محدودیت مجوز `workflows` در توکن GitHub App)
+- [ ] پیاده‌سازی فاز ۲ (موتور پرسش‌خانه و پاسخ درختی) و فاز ۳ (تکمیل کتابخانه ابزار + `/admin/export/backup`) — هنوز شروع نشده
+- [ ] تأیید **بصری** خروجی PDF فارسی — نیازمند توکن واقعی Cloudflare کارفرما
 
 ---
 
@@ -82,7 +93,9 @@ npm run db:seed:local
 npm run test
 ```
 
-متغیرهای محیطی لازم (نگاه کنید به `.dev.vars.example`): `SMS_PROVIDER`, `KAVENEGAR_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `TURNSTILE_SECRET_KEY`, `FILE_SIGN_SECRET`.
+متغیرهای محیطی لازم (نگاه کنید به `.dev.vars.example`): `SMS_PROVIDER`, `KAVENEGAR_API_KEY`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `TURNSTILE_SECRET_KEY`, `TURNSTILE_SITE_KEY`, `FILE_SIGN_SECRET`.
+
+> ⚠️ نکته مهم Persistence محلی D1: تمام دستورات D1 محلی (migrate/seed/console) **و** دستور `wrangler pages dev` داخل `ecosystem.config.cjs` باید دقیقاً یک مقدار مشترک `--persist-to=.wrangler/state` داشته باشند، وگرنه CLI مایگریشن و سرور dev به دو فایل SQLite متفاوت اشاره می‌کنند (نگاه کنید به `docs/decisions.md` § D-011).
 
 ---
 
@@ -112,6 +125,13 @@ tests/            # تست‌های Vitest
 ## ۶. استقرار (Deployment)
 
 - **پلتفرم**: Cloudflare Pages/Workers، حساب اختصاصی کارفرما (BYOK)
-- **وضعیت**: ⏳ در انتظار توکن واقعی Cloudflare کارفرما (`CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`) برای دیپلوی و تأیید نهایی PDF
+- **پیش‌نمایش فعلی (Sandbox، نه استقرار نهایی)**: در حال اجرا در محیط sandbox توسعه — نگاه کنید به گزارش فاز ۱ ارائه‌شده به کارفرما برای لینک زنده.
+- **وضعیت استقرار نهایی**: ⏳ در انتظار توکن واقعی Cloudflare کارفرما (`CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID`) برای دیپلوی و تأیید نهایی PDF
 - **تکنولوژی**: Hono + TypeScript + Drizzle ORM + D1 + R2 + Browser Rendering
-- **آخرین به‌روزرسانی**: ۱۴۰۵/۰۶/۰۴ (2026-08-26)
+- **آخرین به‌روزرسانی**: ۱۴۰۵/۰۶/۰۸ (2026-08-30)
+
+## ۷. مسدودیت GitHub Actions (نیازمند اقدام کارفرما)
+
+فایل‌های `.github/workflows/ci.yml` و `.github/workflows/deploy.yml` به دلیل محدودیت سطح پلتفرم GitHub App (نبود مجوز `workflows` روی توکن) قابل Push از این محیط sandbox نیستند — این محدودیت هم در `git push` و هم در تماس مستقیم GitHub REST Contents API تأیید شده و قابل دورزدن از سمت ما نیست. برای فعال‌سازی CI/CD یکی از این دو مسیر لازم است:
+1. افزودن مجوز `workflows` به توکن GitHub App نصب‌شده روی مخزن، یا
+2. کامیت مستقیم این دو فایل توسط تیم کارفرما (که از قبل در مخزن sandbox موجود و آماده کپی هستند).

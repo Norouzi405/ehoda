@@ -91,3 +91,69 @@ brief — exactly how to reverse/replace it during a VPS migration.
 ### D-009 — CAPTCHA: Cloudflare Turnstile
 - **Decision**: Enabled from day one on OTP request, question submission,
   and abuse report forms (free, Cloudflare-native, minimal UX friction).
+- **Adapter pattern (portability rule 3.6)**: `CaptchaAdapter` interface
+  with `TurnstileCaptchaAdapter` (real, posts to
+  `https://challenges.cloudflare.com/turnstile/v0/siteverify`) and
+  `MockCaptchaAdapter` (dev fallback, accepts any non-empty token).
+  Selected by a factory (`createCaptchaAdapter(env)`) based on the
+  presence of `TURNSTILE_SECRET_KEY` — identical pattern to `SmsAdapter`
+  (D-008-adjacent) and `PdfAdapter` (D-005), so a VPS migration only needs
+  a new concrete class, never a caller change.
+
+### D-010 — Auth/OTP session design and phone normalization (Phase 1)
+- **Session storage — hash only, never the raw token**: `sessions.tokenHash`
+  stores only the SHA-256 hex digest of the session token; the raw token
+  is set once in an HttpOnly/Secure/SameSite=Lax cookie and never persisted
+  server-side. This mirrors the existing `otp_tokens.codeHash` pattern
+  (the OTP code itself is never stored in the clear either). Session TTL
+  is 30 days; `sessions.lastSeenAt` is touched on each resolved request.
+- **Crypto primitives — Web Crypto API only**: `src/lib/crypto.ts`
+  (`sha256Hex`, `randomHex`, `randomNumericCode`, `randomRequestId`,
+  `randomSessionToken`, `timingSafeEqual`) uses exclusively `crypto.subtle`
+  / `crypto.getRandomValues`. This is deliberate for portability: these
+  Web Crypto APIs are natively available in both the Cloudflare Workers
+  runtime *and* Node.js 19+, so this file requires zero changes on a VPS
+  migration — unlike code built on Node's `require('crypto')`.
+- **Iranian phone normalization**: `src/lib/phone.ts` accepts common raw
+  input formats (`09121234567`, `9121234567`, `0098912...`, `+98912...`,
+  Persian/Arabic-Indic digits) and normalizes to E.164 (`+989121234567`)
+  before any DB write or SMS adapter call, so phone-number matching is
+  never format-sensitive.
+- **Rate limiting — D1 as single source of truth (extends D-006 to
+  auth)**: OTP request rate limiting (3 attempts / 10 minutes per phone,
+  60s resend cooldown) is implemented as a plain query against
+  `otp_tokens` (via `OtpRepository.countRecentByPhone` /
+  `findLatestByPhone`), not a separate KV/cache counter. Both thresholds
+  are admin-editable via `settings.rate_limits` (D-008) without a deploy.
+- **`OtpService`/`AuthService` testability — injectable clock**: both
+  services accept an optional `clock: () => number = () => Date.now()`
+  constructor argument so rate-limit windows, code expiry, and session TTL
+  are deterministically unit-testable against fake repositories (see
+  `tests/otp.service.test.ts`, `tests/auth.service.test.ts`) without any
+  wall-clock sleeping in the test suite.
+
+### D-011 — Local D1 dev persistence: explicit shared `--persist-to` path
+- **Problem observed**: `wrangler d1 migrations apply ... --local` /
+  `wrangler d1 execute ... --local` and `wrangler pages dev --d1=DB
+  --local` (used by the PM2 dev process) each default to their own
+  Durable Object storage directory. Without an explicit shared path they
+  silently point at two *different* local SQLite files — migrations and
+  seed data appeared to succeed, but the running dev server queried an
+  empty database (`D1_ERROR: no such table: contents`).
+- **Decision**: Every local D1 command (migrate, seed, console, and the
+  `wrangler pages dev` invocation in `ecosystem.config.cjs`) now passes
+  the identical flag `--persist-to=.wrangler/state`. Wrangler appends its
+  own `v3/d1/...` subpath under this directory, so the value passed here
+  must be the *parent* of the existing `.wrangler/state/v3` tree, not
+  `.wrangler/state/v3` itself (an earlier attempt at
+  `--persist-to=.wrangler/state/v3` produced a nested and equally-wrong
+  `.wrangler/state/v3/v3/d1` directory).
+- **Verification**: After aligning the flag and clearing the stale
+  `.wrangler/state` directory once, `npm run db:migrate:local && npm run
+  db:seed:local` followed by a PM2 restart produced consistent results —
+  confirmed by directly inspecting the underlying `.sqlite` file with the
+  `sqlite3` CLI (`SELECT count(*) FROM contents` returned 5, matching the
+  seeder) and by all public routes returning HTTP 200 end-to-end.
+- **Not applicable to production**: this entire class of problem is local
+  `--local` dev-only; a real Cloudflare D1 database (`--remote` / actual
+  deploy) has a single unambiguous storage location per `database_id`.

@@ -4,9 +4,11 @@ This is the authoritative contract for every HTTP endpoint. Any engineer
 or AI system rebuilding this platform on another stack must reproduce
 these exact request/response shapes — see `migration-guide-to-vps.md`.
 
-> Status: Gate Check skeleton. Full endpoint bodies are implemented
-> incrementally per the delivery plan; this file is updated in the same
-> commit as any route addition/change (never left to drift).
+> Status: Phase 1 (Content module + Auth/OTP) implemented and verified
+> end-to-end against a local D1 database. Phase 2 (Questions/Responses)
+> and Phase 3 (Tools/Admin export) sections below remain planned. This
+> file is updated in the same commit as any route addition/change (never
+> left to drift).
 
 ## Conventions
 
@@ -30,6 +32,36 @@ Rate limit: 3 / 10min per phone+IP (D-008). Also gated by Turnstile token
 ### `POST /api/auth/otp/verify`
 Request body: `{ "requestId": "...", "code": "123456" }`
 Response: `{ "userId": 123, "isNewUser": true }` + sets session cookie.
+Error codes: `not_found`, `expired`, `already_consumed`,
+`too_many_attempts` (5 max), `invalid_code`.
+
+### `POST /api/auth/logout`
+Auth: session cookie (if present). Revokes the session server-side
+(`sessions` row deleted) and clears the cookie. Always returns `{ "ok": true }`.
+
+### `GET /api/auth/me`
+Auth: session cookie required. Response:
+`{ "id": number, "phoneNumber": string, "trustLevel": string, "status": string }`.
+401 `{ "error": "unauthenticated" }` if no valid session.
+
+## Content (Phase 1, implemented)
+
+### `GET /api/contents`
+Query params: `category` (slug, optional), `page` (default 1, 1-indexed).
+Only `status = 'published'` rows are returned. Response:
+`{ "items": ContentListItem[], "total": number, "page": number, "pageSize": number }`.
+Page size is server-clamped to (1, 50], default 12.
+
+### `GET /api/contents/:slug`
+Returns full article detail (joins category + age group) — 404
+`{ "error": "not_found" }` if missing or not published.
+
+### `GET /api/categories`
+Returns active content categories ordered by `sortOrder`.
+
+Corresponding server-rendered (SSR, D-004) pages exist at the same paths
+without the `/api` prefix: `GET /contents`, `GET /contents/:slug`, plus
+`GET /login` (2-step OTP UI) and `GET /` (homepage with latest content).
 
 ## Gate-check technical proof
 
