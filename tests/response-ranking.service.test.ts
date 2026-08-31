@@ -66,4 +66,28 @@ describe('rankResponses (default sort)', () => {
     const ranked = rankResponses(input, 'helpful')
     expect(ranked[0].id).toBe(1)
   })
+
+  it('"professionals_only" filters to professor+expert and keeps professor > expert', () => {
+    const input = [
+      r({ id: 1, authorLevelSnapshot: 'member' }),
+      r({ id: 2, authorLevelSnapshot: 'expert' }),
+      r({ id: 3, authorLevelSnapshot: 'member_experience' }),
+      r({ id: 4, authorLevelSnapshot: 'professor' }),
+    ]
+    const ranked = rankResponses(input, 'professionals_only')
+    expect(ranked.map((x) => x.id)).toEqual([4, 2])
+  })
+
+  it('"parent_experience_only" filters to member_experience tier only', () => {
+    const input = [
+      r({ id: 1, authorLevelSnapshot: 'member' }),
+      r({ id: 2, authorLevelSnapshot: 'expert' }),
+      r({ id: 3, authorLevelSnapshot: 'member_experience', createdAt: '2026-01-01T00:00:00.000Z' }),
+      r({ id: 4, authorLevelSnapshot: 'professor' }),
+      r({ id: 5, authorLevelSnapshot: 'member_experience', isEditorPick: true, createdAt: '2025-12-01T00:00:00.000Z' }),
+    ]
+    const ranked = rankResponses(input, 'parent_experience_only')
+    // editor pick surfaces first even though it's older
+    expect(ranked.map((x) => x.id)).toEqual([5, 3])
+  })
 })

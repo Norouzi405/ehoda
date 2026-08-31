@@ -4,7 +4,7 @@
  */
 import { eq } from 'drizzle-orm'
 import type { Database } from '../db/client'
-import { users, profiles, modelHasRoles, roles } from '../db/schema'
+import { users, profiles, modelHasRoles, roles, userRestrictions, notifications } from '../db/schema'
 
 export interface UserRecord {
   id: number
@@ -22,6 +22,10 @@ export interface UserRepository {
   createMemberWithProfile(phoneNumber: string, phoneVerifiedAtIso: string): Promise<UserRecord>
   markPhoneVerified(userId: number, verifiedAtIso: string): Promise<void>
   markLastLogin(userId: number, atIso: string): Promise<void>
+  /** Moderation penalty (spec §2.5 reports queue: warn_user / suspend_user), spec 5.2.E / 14.3 audit. */
+  imposeRestriction(input: { userId: number; type: 'warning' | 'temporary_limit' | 'suspension' | 'ban'; reason?: string; imposedBy: number; endsAt?: string | null }): Promise<void>
+  /** In-app notification record (spec 13), used to inform a user of a warning/suspension. */
+  notify(input: { userId: number; type: string; payloadJson: string }): Promise<void>
 }
 
 /** Generates a friendly default alias, e.g. "کاربر ۴۸۲۱", never the real phone number (spec §5.1 privacy default). */
@@ -65,6 +69,30 @@ export function createUserRepository(db: Database): UserRepository {
 
     async markLastLogin(userId: number, atIso: string): Promise<void> {
       await db.update(users).set({ lastLoginAt: atIso }).where(eq(users.id, userId))
+    },
+
+    async imposeRestriction(input) {
+      await db.insert(userRestrictions).values({
+        userId: input.userId,
+        type: input.type,
+        reason: input.reason,
+        imposedBy: input.imposedBy,
+        endsAt: input.endsAt ?? null,
+      })
+      // A 'suspension'/'ban' also flips the account status so login/session
+      // checks (spec 5.2.E) can enforce it without re-querying restrictions.
+      if (input.type === 'suspension' || input.type === 'ban') {
+        await db.update(users).set({ status: input.type === 'ban' ? 'banned' : 'suspended' }).where(eq(users.id, input.userId))
+      }
+    },
+
+    async notify(input) {
+      await db.insert(notifications).values({
+        userId: input.userId,
+        type: input.type,
+        channel: 'database',
+        payloadJson: input.payloadJson,
+      })
     },
   }
 }

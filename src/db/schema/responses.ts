@@ -17,7 +17,7 @@
  *                          PUBLISHING, frozen so that later role changes
  *                          never rewrite history (spec 15).
  */
-import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core'
+import { sqliteTable, text, integer, index, uniqueIndex } from 'drizzle-orm/sqlite-core'
 import { sql } from 'drizzle-orm'
 import { users } from './users'
 import { questions } from './questions'
@@ -83,7 +83,9 @@ export const responseVotes = sqliteTable('response_votes', {
   userId: integer('user_id').notNull().references(() => users.id),
   createdAt: text('created_at').notNull().default(nowIso),
 }, (t) => ({
-  uniqueVote: index('uq_response_votes_user_response').on(t.responseId, t.userId),
+  // D-012 fix: this MUST be a uniqueIndex (previously `index()`, a bug that
+  // silently allowed duplicate votes since the DB constraint wasn't real).
+  uniqueVote: uniqueIndex('uq_response_votes_user_response').on(t.responseId, t.userId),
 }))
 
 /** Abuse report against a response/reply (spec 9.8). */

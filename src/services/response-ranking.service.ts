@@ -6,7 +6,7 @@
  */
 import type { AuthorLevel } from '../db/schema/responses'
 
-export type SortMode = 'default' | 'newest' | 'helpful' | 'all'
+export type SortMode = 'default' | 'newest' | 'helpful' | 'all' | 'professionals_only' | 'parent_experience_only'
 
 export interface RankableResponse {
   id: number
@@ -36,7 +36,23 @@ function levelRank(level: string): number {
  * - 'newest' / 'helpful' / 'all': flatten tiers entirely, per the
  *   user-facing filter toggle (spec §9.7 "کاربر بتواند ترتیب را ... تغییر
  *   دهد").
+ * - 'professionals_only': «فقط اساتید و کارشناسان» — filters to tiers
+ *   professor+expert only, then applies the same tier/editor-pick/recency
+ *   ordering as 'default' within that subset.
+ * - 'parent_experience_only': «فقط تجارب والدین» — filters to the
+ *   member_experience tier only, ordered editor-pick-first then recency.
  */
+function defaultTierSort<T extends RankableResponse>(copy: T[]): T[] {
+  return copy.sort((a, b) => {
+    const tierDiff = levelRank(a.authorLevelSnapshot) - levelRank(b.authorLevelSnapshot)
+    if (tierDiff !== 0) return tierDiff
+
+    if (a.isEditorPick !== b.isEditorPick) return a.isEditorPick ? -1 : 1
+
+    return a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0
+  })
+}
+
 export function rankResponses<T extends RankableResponse>(responses: T[], mode: SortMode = 'default'): T[] {
   const copy = [...responses]
 
@@ -52,13 +68,16 @@ export function rankResponses<T extends RankableResponse>(responses: T[], mode: 
     return copy.sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0))
   }
 
+  if (mode === 'professionals_only') {
+    const filtered = copy.filter((r) => r.authorLevelSnapshot === 'professor' || r.authorLevelSnapshot === 'expert')
+    return defaultTierSort(filtered)
+  }
+
+  if (mode === 'parent_experience_only') {
+    const filtered = copy.filter((r) => r.authorLevelSnapshot === 'member_experience')
+    return defaultTierSort(filtered)
+  }
+
   // default: tier first, editor pick second, then recency within tier.
-  return copy.sort((a, b) => {
-    const tierDiff = levelRank(a.authorLevelSnapshot) - levelRank(b.authorLevelSnapshot)
-    if (tierDiff !== 0) return tierDiff
-
-    if (a.isEditorPick !== b.isEditorPick) return a.isEditorPick ? -1 : 1
-
-    return a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0
-  })
+  return defaultTierSort(copy)
 }
