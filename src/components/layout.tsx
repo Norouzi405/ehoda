@@ -10,6 +10,7 @@ export const SiteHeader: FC = () => (
       <a href="/" class="text-lg font-bold text-teal-700">خانواده و رسانه</a>
       <nav class="flex items-center gap-4 text-sm">
         <a href="/contents" class="text-gray-700 hover:text-teal-700">محتوای مرجع</a>
+        <a href="/porseshkadeh" class="text-gray-700 hover:text-teal-700">پرسش‌کده</a>
         <a href="/login" class="bg-teal-700 text-white px-4 py-2 rounded-lg hover:bg-teal-800">ورود</a>
       </nav>
     </div>

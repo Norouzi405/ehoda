@@ -1,5 +1,9 @@
 /**
- * پرسش‌کدهٔ خانواده و رسانه — public JSON API (Phase 2, spec §2, docs/api.md).
+ * پرسش‌کدهٔ خانواده و رسانه — JSON API only (Phase 2, spec §2, docs/api.md).
+ * Mounted under `/api` in src/index.tsx (same convention as content.ts /
+ * auth.ts). The human-facing SSR counterpart lives in
+ * src/routes/porseshkadeh.pages.tsx and is mounted at the site root — it
+ * calls this SAME Service layer, never duplicates business logic (D-004).
  * Thin HTTP layer only — all business logic lives in QuestionService /
  * ResponseService (portability rule 3.1).
  *
@@ -233,6 +237,56 @@ porseshkadehRoute.get('/porseshkadeh/cartable/expertise', async (c) => {
   const categoryIds = await professionalRepo.listExpertiseCategoryIds(profile.id)
   const result = await questionService.listInExpertiseAreas(categoryIds, userId)
   return c.json(result)
+})
+
+// ------------------------- Structured professor/expert draft flow (spec §2.4) -------------------------
+
+const draftSchema = z.object({
+  questionId: z.number().int().positive(),
+  body: z.string().min(1),
+  structuredMetaJson: z.string().optional(),
+})
+
+porseshkadehRoute.post('/porseshkadeh/cartable/draft', async (c) => {
+  const userId = c.get(CURRENT_USER_ID_KEY as never) as number | undefined
+  if (!userId) return c.json({ error: 'unauthenticated' }, 401)
+
+  const parsed = draftSchema.safeParse(await c.req.json().catch(() => null))
+  if (!parsed.success) return c.json({ error: 'invalid_input', message: parsed.error.message }, 400)
+
+  const ctx = buildAppContext(c)
+  const { responseService } = services(ctx)
+  const professionalRepo = createProfessionalRepository(ctx.db)
+  const profile = await professionalRepo.findActiveByUserId(userId)
+  if (!profile) return c.json({ error: 'forbidden', message: 'فقط استادان و کارشناسان تأییدشده می‌توانند پیش‌نویس ثبت کنند.' }, 403)
+
+  const existing = await responseService.findMyDraft(parsed.data.questionId, userId)
+  const saved = await responseService.saveDraft({
+    questionId: parsed.data.questionId,
+    authorUserId: userId,
+    authorLevelSnapshot: profile.credentialType,
+    body: parsed.data.body,
+    structuredMetaJson: parsed.data.structuredMetaJson,
+    existingDraftId: existing?.id ?? null,
+  })
+
+  return c.json({ id: saved.id, status: saved.status })
+})
+
+porseshkadehRoute.post('/porseshkadeh/cartable/draft/:id/submit', async (c) => {
+  const userId = c.get(CURRENT_USER_ID_KEY as never) as number | undefined
+  if (!userId) return c.json({ error: 'unauthenticated' }, 401)
+
+  const ctx = buildAppContext(c)
+  const { responseService } = services(ctx)
+  const professionalRepo = createProfessionalRepository(ctx.db)
+  const profile = await professionalRepo.findActiveByUserId(userId)
+  if (!profile) return c.json({ error: 'forbidden' }, 403)
+
+  const id = Number(c.req.param('id'))
+  const result = await responseService.submitDraftForReview(id, !profile.fastPublishEnabled)
+  if (!result.ok) return c.json({ error: result.error }, result.error === 'not_found' ? 404 : 400)
+  return c.json({ success: true })
 })
 
 // ------------------------- Admin moderation (permission-gated) -------------------------

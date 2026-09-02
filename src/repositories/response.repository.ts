@@ -52,7 +52,10 @@ export interface ResponseRepository {
   tombstone(id: number, actorUserId: number, byModerator: boolean): Promise<void>
   markEditorPick(id: number, value: boolean): Promise<void>
   markScienceReviewed(id: number, value: boolean): Promise<void>
-  updateStatus(id: number, status: string): Promise<void>
+  updateStatus(id: number, status: string, publishedAt?: string | null): Promise<void>
+  // structured professor/expert draft flow (spec §2.4 "پیش‌نویس")
+  findLatestDraftByQuestionAndAuthor(questionId: number, authorUserId: number): Promise<ResponseRecord | null>
+  updateDraft(id: number, changes: { body: string; structuredMetaJson?: string | null }): Promise<void>
   incrementHelpfulCount(id: number, delta: number): Promise<void>
   // votes
   hasVoted(responseId: number, userId: number): Promise<boolean>
@@ -171,11 +174,18 @@ export function createResponseRepository(db: Database): ResponseRepository {
     },
 
     async tombstone(id, actorUserId, byModerator) {
+      // Canonical tombstone placeholder text (client Phase 2 spec §2.3,
+      // verbatim — D-013): ONE fixed string regardless of who performed
+      // the delete, so the UI/copy never has to branch on `byModerator`.
+      // `byModerator` is still recorded (moderation_actions row, written by
+      // the caller) purely for the audit trail, not for text selection.
+      void actorUserId
+      void byModerator
       await db
         .update(responses)
         .set({
           isTombstone: true,
-          body: byModerator ? '[این نظر توسط ناظر حذف شده است]' : '[این نظر توسط کاربر حذف شده است]',
+          body: '[این نظر توسط کاربر/ناظر حذف شده است]',
           updatedAt: sql`(strftime('%Y-%m-%dT%H:%M:%fZ','now'))`,
         })
         .where(eq(responses.id, id))
@@ -189,8 +199,34 @@ export function createResponseRepository(db: Database): ResponseRepository {
       await db.update(responses).set({ isScienceReviewed: value }).where(eq(responses.id, id))
     },
 
-    async updateStatus(id, status) {
-      await db.update(responses).set({ status }).where(eq(responses.id, id))
+    async updateStatus(id, status, publishedAt) {
+      await db
+        .update(responses)
+        .set({ status, ...(publishedAt !== undefined ? { publishedAt } : {}) })
+        .where(eq(responses.id, id))
+    },
+
+    async findLatestDraftByQuestionAndAuthor(questionId, authorUserId) {
+      const rows = await db
+        .select(SELECT_COLUMNS)
+        .from(responses)
+        .leftJoin(profiles, eq(profiles.userId, responses.authorUserId))
+        .where(and(eq(responses.questionId, questionId), eq(responses.authorUserId, authorUserId), eq(responses.status, 'draft')))
+        .orderBy(desc(responses.createdAt))
+        .limit(1)
+      const row = rows[0]
+      return row ? toRecord(row) : null
+    },
+
+    async updateDraft(id, changes) {
+      await db
+        .update(responses)
+        .set({
+          body: changes.body,
+          structuredMetaJson: changes.structuredMetaJson ?? null,
+          updatedAt: sql`(strftime('%Y-%m-%dT%H:%M:%fZ','now'))`,
+        })
+        .where(eq(responses.id, id))
     },
 
     async incrementHelpfulCount(id, delta) {

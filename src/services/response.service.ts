@@ -52,6 +52,15 @@ export function buildResponseTree(flat: ResponseRecord[], topLevelSortMode: Sort
   return ranked
 }
 
+export interface SaveDraftInput {
+  questionId: number
+  authorUserId: number
+  authorLevelSnapshot: AuthorLevel | string
+  body: string
+  structuredMetaJson?: string | null
+  existingDraftId?: number | null
+}
+
 export interface ResponseService {
   create(input: CreateResponseInput): Promise<CreateResponseResult>
   getTreeForQuestion(questionId: number, sortMode: SortMode, includeUnpublished: boolean): Promise<ResponseTreeNode[]>
@@ -67,6 +76,10 @@ export interface ResponseService {
   listReports(status?: string): ReturnType<ResponseRepository['listReports']>
   resolveReport(id: number, moderatorUserId: number, status: string): Promise<void>
   listForModeration(status?: string): Promise<ResponseRecord[]>
+  // professional cartable draft flow (spec §2.4)
+  findMyDraft(questionId: number, authorUserId: number): Promise<ResponseRecord | null>
+  saveDraft(input: SaveDraftInput): Promise<ResponseRecord>
+  submitDraftForReview(responseId: number, isPreModerated: boolean): Promise<{ ok: boolean; error?: string }>
 }
 
 export function createResponseService(repo: ResponseRepository, clock: () => number = () => Date.now()): ResponseService {
@@ -165,6 +178,36 @@ export function createResponseService(repo: ResponseRepository, clock: () => num
 
     async listForModeration(status) {
       return repo.listForModeration(status)
+    },
+
+    async findMyDraft(questionId, authorUserId) {
+      return repo.findLatestDraftByQuestionAndAuthor(questionId, authorUserId)
+    },
+
+    async saveDraft(input) {
+      if (input.existingDraftId) {
+        await repo.updateDraft(input.existingDraftId, { body: input.body, structuredMetaJson: input.structuredMetaJson })
+        return (await repo.findById(input.existingDraftId)) as ResponseRecord
+      }
+      return repo.create({
+        questionId: input.questionId,
+        parentId: null,
+        authorUserId: input.authorUserId,
+        authorLevelSnapshot: input.authorLevelSnapshot,
+        body: input.body,
+        structuredMetaJson: input.structuredMetaJson,
+        status: 'draft',
+        publishedAt: null,
+      })
+    },
+
+    async submitDraftForReview(responseId, isPreModerated) {
+      const record = await repo.findById(responseId)
+      if (!record) return { ok: false, error: 'not_found' }
+      if (record.status !== 'draft') return { ok: false, error: 'not_a_draft' }
+      const status = isPreModerated ? 'under_review' : 'published'
+      await repo.updateStatus(responseId, status, isPreModerated ? null : new Date(clock()).toISOString())
+      return { ok: true }
     },
   }
 }

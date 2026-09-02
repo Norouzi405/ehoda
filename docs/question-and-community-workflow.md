@@ -59,9 +59,17 @@ moderator-reversible.
 - `depth = parent ? parent.depth + 1 : 0`.
 - UI renders `depth <= 2` inline; deeper replies collapse behind
   "نمایش پاسخ‌های بیشتر", loaded lazily by `rootResponseId`.
-- Deleting a response with existing replies never deletes the row: sets
-  `isTombstone = true`, `body = '[این پیام حذف شده است]'`. The tree
-  (`parentId` chain) is untouched.
+- Deleting a response (by its author OR by a moderator) never deletes the
+  row: sets `isTombstone = true`, `body = '[این نظر توسط کاربر/ناظر حذف
+  شده است]'` (single canonical string regardless of actor — D-013). The
+  tree (`parentId`/`rootResponseId` chain) is untouched, so any existing
+  replies keep rendering under the tombstoned parent.
+- `hide` (moderator-only, `status → 'hidden'`) is a SEPARATE, reversible
+  action from tombstone-on-delete: it removes the response from public
+  listing without touching `body`/`isTombstone`, and can be undone via
+  `unhide` (`status → 'published'`). Use `hide` for "temporarily pull this
+  from view while I look into it"; use `delete` (tombstone) for a
+  permanent removal that must still preserve the reply chain.
 - Every response has a stable permalink: `/questions/{slug}#response-{id}`.
 
 ## 5. Default response ranking

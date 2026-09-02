@@ -157,3 +157,69 @@ brief — exactly how to reverse/replace it during a VPS migration.
 - **Not applicable to production**: this entire class of problem is local
   `--local` dev-only; a real Cloudflare D1 database (`--remote` / actual
   deploy) has a single unambiguous storage location per `database_id`.
+
+### D-012 — Fixed a real duplicate-vote bug: `response_votes` unique index was declared as a non-unique `index()`
+- **Problem found (Phase 2 code review)**: `src/db/schema/responses.ts`
+  declared `uq_response_votes_user_response` using Drizzle's `index()`
+  helper instead of `uniqueIndex()`. The name suggested a uniqueness
+  constraint, but `index()` produces a plain (non-unique) SQLite index —
+  so the DB never actually rejected a second "helpful" vote by the same
+  user on the same response. The application-level `hasVoted()` check in
+  `ResponseService.vote()` masked this in the normal request path, but any
+  concurrent/duplicate request (e.g. a double-click, a retried fetch) could
+  still insert two rows and double-count `helpfulVotesCount`.
+- **Decision**: Changed the column definition to `uniqueIndex('uq_response_votes_user_response').on(t.responseId, t.userId)`.
+  `ResponseRepository.addVote()` now relies on this real DB constraint as
+  the authoritative guard (catches the unique-violation exception and
+  returns `{ ok: false, error: 'already_voted' }`), with the service-level
+  `hasVoted()` check kept only as a fast-path/nicer-error-message
+  optimization, not as the sole line of defense.
+- **Migration**: captured in `migrations/0002_*.sql` (generated via
+  `drizzle-kit generate` against the corrected schema) — see that file's
+  header comment for the exact `CREATE UNIQUE INDEX` statement and the
+  one-time cleanup needed if any duplicate rows already exist locally.
+- **Mandatory test**: `tests/response.service.test.ts` — "duplicate vote
+  is rejected" — exercises this against a fake in-memory repository that
+  faithfully reproduces the real unique-constraint behavior.
+
+### D-013 — Phase 2 data-model naming: kept existing field names/types over the client's illustrative sample schema; tombstone text unified; expertise-area matching by slug
+- **Context**: The client's Phase 2 spec included a sample Drizzle
+  `responses` schema using `authorId` (vs our existing `authorUserId`),
+  `deletedTombstone` (vs our existing `isTombstone`), `metadata` (vs our
+  existing `structuredMetaJson`), and integer/epoch timestamp mode (vs our
+  established TEXT ISO-8601 UTC convention, D-007/database-schema.md).
+- **Decision**: Preserve the existing Phase 0/1 field names and the TEXT
+  ISO-8601 timestamp convention rather than renaming to match the
+  client's sample. Rationale: (1) the sample was explicitly illustrative,
+  not a literal contract, and the fields are 1:1 equivalent in meaning;
+  (2) renaming would require touching every Phase 0/1 caller, migration,
+  and test with zero functional benefit; (3) the TEXT ISO-8601 convention
+  is a hard portability rule (D-007) applied uniformly across the entire
+  schema — switching just `responses` to integer/epoch mode would break
+  that consistency for no reason. This substitution is disclosed here and
+  in the Phase 2 completion report for the client's records.
+- **Tombstone placeholder text unified**: three different variants had
+  accumulated across artifacts (an earlier docs draft: `[این پیام حذف
+  شده است]`; the client's Phase 2 spec: `[این نظر توسط کاربر/ناظر حذف شده
+  است]`; an intermediate implementation: two separate moderator/user
+  variants). **The client's spec string is now the single canonical
+  value**, used unconditionally by `ResponseRepository.tombstone()`
+  regardless of who performed the delete (see
+  `question-and-community-workflow.md` §4). `docs/` updated to match.
+- **`expertise_areas` vs `content_categories` — matched by slug, not
+  merged into one taxonomy**: the professor/expert cartable's "questions
+  in my expertise area" feature (spec §2.4) needs to map a professional's
+  declared `expertise_areas` to the `content_categories` used by
+  questions/content. Rather than merging these into a single taxonomy
+  (which would conflate an editorial content taxonomy with a
+  professional-credentialing taxonomy — different admin permissions,
+  different lifecycle), `ProfessionalRepository.listExpertiseCategoryIds()`
+  matches them by identical `slug` string. **This requires the seed data
+  for both tables to use the same slug set for topics that should align**
+  (done in `seeders/seed.sql` Phase 2 additions — every `expertise_areas`
+  row uses the exact slug of its corresponding `content_categories` row).
+  If a future admin adds an expertise area with no matching content
+  category slug, the cartable simply returns zero matches for that area
+  (a silent-empty-result rather than an error) — flagged here so the ops
+  team knows to keep the two slug sets aligned when editing either
+  taxonomy from the admin panel.

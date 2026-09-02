@@ -5,6 +5,8 @@ import { pdfTestRoute } from './routes/pdf-test'
 import { authRoute } from './routes/auth'
 import { contentRoute } from './routes/content'
 import { pagesRoute } from './routes/pages'
+import { porseshkadehRoute } from './routes/porseshkadeh.api'
+import { porseshkadehPagesRoute } from './routes/porseshkadeh.pages'
 import { attachCurrentUser } from './middleware/auth'
 import { buildAppContext } from './lib/context'
 import { createContentRepository } from './repositories/content.repository'
@@ -20,9 +22,11 @@ app.use('*', attachCurrentUser)
 app.route('/api', pdfTestRoute) // Gate-check technical proof (see docs/decisions.md §Gate Check)
 app.route('/api', authRoute)
 app.route('/api', contentRoute)
+app.route('/api', porseshkadehRoute)
 
 // --- Server-rendered public pages (D-004) ---
 app.route('/', pagesRoute)
+app.route('/', porseshkadehPagesRoute)
 
 app.get('/', async (c) => {
   const ctx = buildAppContext(c)
