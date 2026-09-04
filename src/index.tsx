@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { renderer } from './renderer'
 import type { Bindings } from './lib/bindings'
 import { pdfTestRoute } from './routes/pdf-test'
+import { devToolsRoute } from './routes/dev-tools'
 import { authRoute } from './routes/auth'
 import { contentRoute } from './routes/content'
 import { pagesRoute } from './routes/pages'
@@ -20,6 +21,7 @@ app.use('*', attachCurrentUser)
 
 // --- JSON API ---
 app.route('/api', pdfTestRoute) // Gate-check technical proof (see docs/decisions.md §Gate Check)
+app.route('/api', devToolsRoute) // Diagnostic-only Mock-OTP echo, see routes/dev-tools.ts
 app.route('/api', authRoute)
 app.route('/api', contentRoute)
 app.route('/api', porseshkadehRoute)
