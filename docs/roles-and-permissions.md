@@ -84,4 +84,43 @@ secondary_sort (user-selectable in UI):
 
 `author_level_snapshot` is what `level_rank` reads from — never the
 user's current role — per the historical-stability requirement in
-`database-schema.md`.
+`database-schema.md`. Ranking is applied ONLY at the top level of a
+question's response tree (`buildResponseTree()` in
+`response.service.ts`); replies nested under a top-level response are
+always ordered chronologically and are never re-ranked by tier — a
+professor's reply does not jump above an earlier member reply in the
+same thread. Covered by `tests/response.service.test.ts`.
+
+## Tombstone-on-delete (spec §2.3/D-013, `response.moderate` / own-author only)
+
+Deleting a response — whether by its own author (`response.edit_own`,
+self-service) or by a moderator (`response.moderate`) — NEVER physically
+removes the row. `ResponseRepository.tombstone()` sets `is_tombstone = 1`
+and replaces `body` with one canonical placeholder string
+(`"[این نظر توسط کاربر/ناظر حذف شده است]"`), identical regardless of who
+performed the delete. This preserves the `parent_id`/`root_response_id`
+chain so any replies underneath the deleted response continue to resolve
+and render correctly — the thread structure never breaks. Covered by
+`tests/response.service.test.ts`.
+
+## Question privacy boundary (spec §10.3/§16.1, `question.view_private`)
+
+`QuestionService.getRawForViewer(slug, viewerUserId, canViewPrivate)` is
+the single gate between a question's raw/private fields (author's real
+`rawTitle`, `rawWhatHappened`, `rawSinceWhen`, `rawTriedSoFar`,
+`rawHelpRequested`, and `authorUserId`, which is how the author's phone
+number is reachable) and any non-authorized caller:
+
+- The question's own author, or any caller holding
+  `question.view_private` (moderator/scientific_manager/super_admin) —
+  gets the full raw record.
+- Anyone else viewing a `published` question — gets a **stripped** copy:
+  `authorUserId: 0`, and all raw text fields reset to `''`/`null`. Only
+  the moderator-curated `publicTitle`/`publicBody` (already anonymized
+  during moderation) are shown.
+- Anyone else viewing a non-`published` question — gets `null` (404 at
+  the route layer), not even the stripped copy.
+
+This is the mechanism that prevents mobile-number/questioner-identity
+disclosure in any public output. Covered by
+`tests/question.service.test.ts`.
