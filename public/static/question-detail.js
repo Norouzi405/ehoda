@@ -40,7 +40,7 @@
           var data = await res.json();
           if (!res.ok) {
             if (data.error === 'already_voted') {
-              btn.classList.add('text-teal-700');
+              btn.classList.add('text-teal-800');
               btn.disabled = true;
             } else if (data.error === 'unauthenticated') {
               window.location.href = '/login';
@@ -51,7 +51,7 @@
           var match = btn.textContent.match(/\((\d+)\)/);
           var current = match ? parseInt(match[1], 10) : 0;
           btn.innerHTML = '<i class="fas fa-thumbs-up"></i> مفید بود (' + (current + 1) + ')';
-          btn.classList.add('text-teal-700');
+          btn.classList.add('text-teal-800');
           btn.disabled = true;
         } catch (e) {
           /* network error: silently ignore, user can retry */
@@ -105,19 +105,19 @@
   function buildReportModal() {
     var overlay = document.createElement('div');
     overlay.id = 'report-modal-overlay';
-    overlay.className = 'fixed inset-0 bg-black/40 flex items-center justify-center z-50';
+    overlay.className = 'fixed inset-0 bg-stone-900/40 backdrop-blur-sm flex items-center justify-center z-50';
 
     var box = document.createElement('div');
-    box.className = 'bg-white rounded-2xl p-6 max-w-sm w-full mx-4';
+    box.className = 'bg-white rounded-2xl border border-stone-200/70 shadow-lg p-6 max-w-sm w-full mx-4';
 
     var title = document.createElement('h3');
-    title.className = 'font-bold text-gray-900 mb-4';
+    title.className = 'font-extrabold text-stone-800 mb-4';
     title.textContent = 'گزارش تخلف';
     box.appendChild(title);
 
     var select = document.createElement('select');
     select.id = 'report-modal-reason';
-    select.className = 'w-full border rounded-lg px-3 py-2.5 mb-3';
+    select.className = 'w-full border border-stone-200/70 rounded-xl px-3 py-2.5 mb-3 text-stone-700 focus:outline-none focus:ring-2 focus:ring-teal-800/20';
     REPORT_REASONS.forEach(function (r) {
       var opt = document.createElement('option');
       opt.value = r.value;
@@ -130,7 +130,7 @@
     note.id = 'report-modal-note';
     note.rows = 3;
     note.placeholder = 'توضیح تکمیلی (اختیاری)';
-    note.className = 'w-full border rounded-lg px-3 py-2.5 mb-4';
+    note.className = 'w-full border border-stone-200/70 rounded-xl px-3 py-2.5 mb-4 text-stone-700 placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-teal-800/20';
     box.appendChild(note);
 
     var actions = document.createElement('div');
@@ -138,13 +138,13 @@
 
     var cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
-    cancelBtn.className = 'bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm';
+    cancelBtn.className = 'bg-white border border-stone-200 text-stone-600 px-4 py-2 rounded-full text-sm hover:bg-stone-50 transition-colors';
     cancelBtn.textContent = 'انصراف';
     cancelBtn.addEventListener('click', closeReportModal);
 
     var submitBtn = document.createElement('button');
     submitBtn.type = 'button';
-    submitBtn.className = 'bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700';
+    submitBtn.className = 'bg-red-600 text-white px-4 py-2 rounded-full text-sm font-bold hover:bg-red-700 transition-colors';
     submitBtn.textContent = 'ارسال گزارش';
     submitBtn.addEventListener('click', submitReport);
 

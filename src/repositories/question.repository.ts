@@ -11,7 +11,7 @@
  * MUST gate behind `requirePermission('question.view_private')` or an
  * author-ownership check.
  */
-import { eq, and, desc, sql, inArray } from 'drizzle-orm'
+import { eq, and, desc, sql, inArray, like, or } from 'drizzle-orm'
 import type { Database } from '../db/client'
 import { questions, questionStatusHistories, questionAssignments, contentCategories, ageGroups } from '../db/schema'
 
@@ -74,6 +74,7 @@ export interface CreateQuestionInput {
 export interface ListQuestionsParams {
   categorySlug?: string
   ageGroupSlug?: string
+  q?: string
   page?: number
   pageSize?: number
 }
@@ -242,11 +243,15 @@ export function createQuestionRepository(db: Database): QuestionRepository {
       return inserted[0]
     },
 
-    async listPublished({ categorySlug, ageGroupSlug, page = 1, pageSize = 12 }) {
+    async listPublished({ categorySlug, ageGroupSlug, q, page = 1, pageSize = 12 }) {
       const offset = (page - 1) * pageSize
       const conditions = [eq(questions.status, 'published')]
       if (categorySlug) conditions.push(eq(contentCategories.slug, categorySlug))
       if (ageGroupSlug) conditions.push(eq(ageGroups.slug, ageGroupSlug))
+      if (q && q.trim()) {
+        const term = `%${q.trim()}%`
+        conditions.push(or(like(questions.publicTitle, term), like(questions.publicBody, term))!)
+      }
       const whereClause = and(...conditions)
 
       const rows = await db

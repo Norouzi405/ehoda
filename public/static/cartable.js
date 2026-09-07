@@ -14,7 +14,7 @@
   function setStatus(message, isError) {
     if (!statusEl) return;
     statusEl.textContent = message;
-    statusEl.className = 'text-sm mt-3 ' + (isError ? 'text-red-600' : 'text-teal-700');
+    statusEl.className = 'text-sm mt-3 ' + (isError ? 'text-red-600' : 'text-teal-800');
   }
 
   // structuredMetaJson bundles the optional "خلاصهٔ مسئله" / "چه کاری نباید

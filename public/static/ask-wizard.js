@@ -153,11 +153,11 @@
     document.querySelectorAll('[data-step-indicator]').forEach(function (indicator) {
       var indicatorStep = Number(indicator.getAttribute('data-step-indicator'));
       if (indicatorStep === step) {
-        indicator.classList.remove('bg-gray-100', 'text-gray-500');
-        indicator.classList.add('bg-teal-700', 'text-white');
+        indicator.classList.remove('bg-stone-100', 'text-stone-400');
+        indicator.classList.add('bg-teal-800', 'text-white');
       } else {
-        indicator.classList.remove('bg-teal-700', 'text-white');
-        indicator.classList.add('bg-gray-100', 'text-gray-500');
+        indicator.classList.remove('bg-teal-800', 'text-white');
+        indicator.classList.add('bg-stone-100', 'text-stone-400');
       }
     });
 

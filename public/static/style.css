@@ -1,1 +1,69 @@
-h1 { font-family: Arial, Helvetica, sans-serif; }
+/* پرسش‌کدهٔ خانواده و رسانه — لایهٔ بصری گرم و آرامش‌بخش */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Vazirmatn', Arial, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Vazirmatn', Arial, sans-serif;
+  font-weight: 800;
+}
+
+/* نرم‌کردن اسکرول‌بار برای حس مدرن‌تر */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #FAF9F6;
+}
+::-webkit-scrollbar-thumb {
+  background: #D6D0C4;
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b9b2a2;
+}
+
+/* افکت ملایم روی کارت‌ها */
+.soft-card {
+  transition: box-shadow 0.25s ease, transform 0.25s ease, border-color 0.25s ease;
+}
+.soft-card:hover {
+  transform: translateY(-2px);
+}
+
+/* گرادیان گرم هیرو */
+.hero-gradient {
+  background: radial-gradient(120% 120% at 50% 0%, #FDF8EE 0%, #FAF9F6 55%, #FAF9F6 100%);
+}
+
+/* پترن نقطه‌ای بسیار ملایم پس‌زمینه هیرو */
+.hero-dotted {
+  background-image: radial-gradient(#0F4C5C0d 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* شناوری باکس جست‌وجو */
+.search-float {
+  box-shadow: 0 10px 30px -10px rgba(15, 76, 92, 0.18), 0 4px 10px -4px rgba(15, 76, 92, 0.08);
+}
+
+/* پیل‌های پیشنهادی */
+.suggest-pill {
+  transition: all 0.2s ease;
+}
+.suggest-pill:hover {
+  background-color: #0F4C5C;
+  color: #fff;
+  border-color: #0F4C5C;
+}
+
+/* استایل خط زمانی پاسخ‌ها */
+.reply-rail {
+  border-inline-end: 2px solid #EDE7D9;
+}

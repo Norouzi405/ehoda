@@ -35,53 +35,111 @@ app.get('/', async (c) => {
   const service = createContentService(createContentRepository(ctx.db))
   const { items } = await service.listPublished({ pageSize: 3 })
 
+  const suggestionPills = [
+    { label: 'اولین گوشی فرزند', href: '/porseshkadeh?q=اولین گوشی' },
+    { label: 'اختلاف والدین سر تبلت', href: '/porseshkadeh?q=تبلت' },
+    { label: 'اینستاگرام نوجوان', href: '/porseshkadeh?q=اینستاگرام' },
+  ]
+
   return c.render(
     <div dir="rtl">
       <SiteHeader />
-      <main class="max-w-5xl mx-auto px-4 md:px-6">
-        <section class="py-16 md:py-24 text-center">
-          <h1 class="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
-            خانواده و رسانه
+
+      {/* ---------------- Hero ---------------- */}
+      <section class="hero-gradient hero-dotted border-b border-stone-200/60">
+        <div class="max-w-5xl mx-auto px-4 md:px-6 py-16 md:py-24 text-center">
+          <span class="inline-flex items-center gap-2 bg-amber-100 text-amber-800 rounded-full px-4 py-1.5 text-xs font-bold mb-6">
+            <i class="fas fa-seedling"></i>
+            فضایی آرام برای پرسش‌های واقعی خانواده
+          </span>
+          <h1 class="text-3xl lg:text-4xl font-extrabold text-stone-800 mb-4 leading-tight">
+            هر دغدغه‌ای دربارهٔ فرزندتان دارید،
+            <br class="hidden md:block" />
+            اینجا با آرامش بپرسید.
           </h1>
-          <p class="text-lg text-gray-600 max-w-2xl mx-auto mb-8">
+          <p class="text-base md:text-lg text-stone-500 max-w-2xl mx-auto mb-10">
             مرجع سواد رسانه‌ای برای والدین، معلمان و مربیان — محتوای علمی، پرسش‌کدهٔ مشورتی
             و ابزارهای عملی برای مدیریت آگاهانهٔ رسانه در خانواده.
           </p>
-          <div class="flex justify-center gap-3 flex-wrap">
-            <a href="/contents" class="bg-teal-700 text-white px-6 py-3 rounded-lg hover:bg-teal-800">
-              مشاهدهٔ محتوای مرجع
+
+          {/* Floating search box */}
+          <form action="/porseshkadeh" method="get" class="max-w-2xl mx-auto mb-6">
+            <div class="search-float bg-white rounded-2xl border border-stone-200/70 p-2 flex items-center gap-2">
+              <i class="fas fa-magnifying-glass text-stone-400 mx-3"></i>
+              <input
+                type="text"
+                name="q"
+                placeholder="مثلاً: فرزندم زمان زیادی پای گوشی است..."
+                class="flex-1 bg-transparent border-0 outline-none py-3 text-stone-800 placeholder:text-stone-400"
+              />
+              <button
+                type="submit"
+                class="bg-teal-800 hover:bg-teal-900 text-white rounded-xl px-5 py-3 text-sm font-bold flex items-center gap-2 transition-colors"
+              >
+                <i class="fas fa-search"></i>
+                جست‌وجو
+              </button>
+            </div>
+          </form>
+
+          {/* Suggestion pills */}
+          <div class="flex flex-wrap justify-center gap-2 mb-4">
+            {suggestionPills.map((pill) => (
+              <a
+                href={pill.href}
+                class="suggest-pill bg-white border border-stone-200 text-stone-600 rounded-full px-4 py-1.5 text-sm"
+              >
+                {pill.label}
+              </a>
+            ))}
+          </div>
+
+          <div class="flex justify-center gap-3 flex-wrap mt-8">
+            <a href="/porseshkadeh" class="bg-teal-800 text-white px-6 py-3 rounded-full font-bold hover:bg-teal-900 transition-colors shadow-sm">
+              مشاهدهٔ پرسش‌کده
             </a>
-            <a href="/login" class="bg-white border border-gray-300 text-gray-800 px-6 py-3 rounded-lg hover:border-teal-600">
+            <a href="/login" class="bg-white border border-stone-200 text-stone-700 px-6 py-3 rounded-full font-bold hover:border-teal-700 hover:text-teal-800 transition-colors">
               ورود و ثبت پرسش
             </a>
           </div>
-        </section>
+        </div>
+      </section>
 
+      <main class="max-w-5xl mx-auto px-4 md:px-6">
         {items.length > 0 && (
-          <section class="pb-16">
-            <h2 class="text-xl font-bold text-gray-900 mb-6">تازه‌ترین محتوای مرجع</h2>
+          <section class="py-16">
+            <div class="flex items-center justify-between mb-6">
+              <h2 class="text-xl font-extrabold text-stone-800">تازه‌ترین محتوای مرجع</h2>
+              <a href="/contents" class="text-teal-800 text-sm font-bold hover:underline flex items-center gap-1">
+                مشاهدهٔ همه
+                <i class="fas fa-arrow-left text-xs"></i>
+              </a>
+            </div>
             <div class="grid gap-6 md:grid-cols-3">
               {items.map((item) => (
-                <a href={`/contents/${item.slug}`} class="block bg-white border rounded-2xl p-6 hover:shadow-md transition-shadow">
+                <a
+                  href={`/contents/${item.slug}`}
+                  class="soft-card block bg-white rounded-2xl border border-stone-200/70 shadow-sm hover:shadow-md p-6"
+                >
                   {item.categoryNameFa && (
-                    <span class="inline-block text-xs text-teal-700 bg-teal-50 rounded-full px-2 py-1 mb-3">
+                    <span class="inline-block text-xs font-bold text-amber-800 bg-amber-100 rounded-lg px-2.5 py-1 mb-3">
                       {item.categoryNameFa}
                     </span>
                   )}
-                  <h3 class="font-bold text-gray-900 mb-2">{item.title}</h3>
-                  {item.summary && <p class="text-gray-600 text-sm line-clamp-3">{item.summary}</p>}
+                  <h3 class="font-extrabold text-stone-800 mb-2">{item.title}</h3>
+                  {item.summary && <p class="text-stone-500 text-sm line-clamp-3">{item.summary}</p>}
                 </a>
               ))}
             </div>
           </section>
         )}
 
-        <section class="pb-16 border-t pt-10">
-          <h2 class="text-xl font-bold text-gray-900 mb-2">اثبات فنی PDF فارسی (Gate Check)</h2>
-          <p class="text-gray-600 mb-3 text-sm">
+        <section class="pb-16 border-t border-stone-200 pt-10">
+          <h2 class="text-lg font-extrabold text-stone-800 mb-2">اثبات فنی PDF فارسی (Gate Check)</h2>
+          <p class="text-stone-500 mb-3 text-sm">
             نمونهٔ سند فارسی راست‌چین رندرشده با فونت وزیرمتن از طریق Cloudflare Browser Rendering:
           </p>
-          <a href="/api/_gatecheck/pdf-sample" class="text-teal-700 hover:underline text-sm">
+          <a href="/api/_gatecheck/pdf-sample" class="text-teal-800 hover:underline text-sm font-bold">
             دانلود نمونهٔ PDF ←
           </a>
         </section>

@@ -46,7 +46,7 @@ function slugify(base: string): string {
 
 export interface QuestionService {
   submit(input: SubmitQuestionInput, nowIso: string): Promise<SubmitQuestionResult>
-  listPublished(params: { categorySlug?: string; ageGroupSlug?: string; page?: number }): Promise<{ items: QuestionListItem[]; total: number; page: number; pageSize: number }>
+  listPublished(params: { categorySlug?: string; ageGroupSlug?: string; q?: string; page?: number }): Promise<{ items: QuestionListItem[]; total: number; page: number; pageSize: number }>
   getPublishedBySlug(slug: string): Promise<QuestionDetail | null>
   getRawForViewer(slug: string, viewerUserId: number | undefined, canViewPrivate: boolean): Promise<QuestionRawDetail | null>
   listCategories(): Promise<{ id: number; slug: string; nameFa: string }[]>
@@ -126,7 +126,7 @@ export function createQuestionService(repo: QuestionRepository, settingsRepo: Se
     async listPublished(params) {
       const page = params.page && params.page > 0 ? params.page : 1
       const pageSize = 12
-      const { items, total } = await repo.listPublished({ categorySlug: params.categorySlug, ageGroupSlug: params.ageGroupSlug, page, pageSize })
+      const { items, total } = await repo.listPublished({ categorySlug: params.categorySlug, ageGroupSlug: params.ageGroupSlug, q: params.q, page, pageSize })
       return { items, total, page, pageSize }
     },
 
