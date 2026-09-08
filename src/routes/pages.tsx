@@ -29,7 +29,7 @@ pagesRoute.get('/contents', async (c) => {
     <div dir="rtl">
       <SiteHeader />
       <main class="max-w-5xl mx-auto px-4 md:px-6 py-10">
-        <h1 class="text-2xl font-extrabold text-stone-800 mb-2">محتوای مرجع</h1>
+        <h1 class="font-display text-2xl font-extrabold text-stone-800 mb-2">محتوای مرجع</h1>
         <p class="text-stone-500 mb-8">مقالات و راهنماهای مسئله‌محور برای والدین، مربیان و معلمان.</p>
 
         <div class="flex flex-wrap gap-2 mb-8">
@@ -101,7 +101,7 @@ pagesRoute.get('/contents/:slug', async (c) => {
       <div dir="rtl">
         <SiteHeader />
         <main class="max-w-3xl mx-auto px-4 md:px-6 py-16 text-center">
-          <h1 class="text-2xl font-extrabold text-stone-800 mb-2">محتوا پیدا نشد</h1>
+          <h1 class="font-display text-2xl font-extrabold text-stone-800 mb-2">محتوا پیدا نشد</h1>
           <a href="/contents" class="text-teal-800 hover:underline">بازگشت به فهرست محتوا</a>
         </main>
         <SiteFooter />
@@ -118,7 +118,7 @@ pagesRoute.get('/contents/:slug', async (c) => {
           <a href="/contents" class="hover:text-teal-800">محتوای مرجع</a>
           {content.categoryNameFa && <span> / {content.categoryNameFa}</span>}
         </nav>
-        <h1 class="text-2xl md:text-3xl font-extrabold text-stone-800 mb-4">{content.title}</h1>
+        <h1 class="font-display text-2xl md:text-3xl font-extrabold text-stone-800 mb-4">{content.title}</h1>
 
         {content.shortAnswer && (
           <div class="bg-teal-50 border border-teal-200/70 rounded-2xl p-5 mb-8">
@@ -157,7 +157,7 @@ pagesRoute.get('/login', async (c) => {
           <div class="w-12 h-12 rounded-2xl bg-teal-800/10 text-teal-800 flex items-center justify-center mb-4">
             <i class="fas fa-lock text-lg"></i>
           </div>
-          <h1 class="text-xl font-extrabold text-stone-800 mb-2">ورود / ثبت‌نام</h1>
+          <h1 class="font-display text-xl font-extrabold text-stone-800 mb-2">ورود / ثبت‌نام</h1>
           <p class="text-stone-500 text-sm mb-6">
             با شمارهٔ موبایل خود وارد شوید. اگر تازه هستید، حساب شما به‌طور خودکار ساخته می‌شود.
           </p>

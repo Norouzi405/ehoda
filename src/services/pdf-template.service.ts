@@ -9,6 +9,14 @@
  * incl. correct letter joining) loaded from a CDN inside the rendered
  * page — Cloudflare Browser Rendering executes with outbound network
  * access, so @font-face over HTTPS resolves normally.
+ *
+ * Font source note: previously pinned to a versioned jsDelivr GitHub-raw
+ * path (cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@...), which is fragile —
+ * one of its sibling paths (Farsi-Digits/font-face.css, used on the live
+ * site) went 404 after an upstream repo restructure. Switched to Google
+ * Fonts' gstatic static-file mirror, which is the same font files served
+ * from Google's always-on, versionless CDN — consistent with the live
+ * site's renderer.tsx fix and safer long-term.
  */
 
 export interface PdfDocumentSection {
@@ -49,13 +57,21 @@ export function renderPdfDocumentHtml(doc: PdfDocumentInput): string {
 <style>
   @font-face {
     font-family: 'Vazirmatn';
-    src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Regular.woff2') format('woff2');
+    src: url('https://fonts.gstatic.com/s/vazirmatn/v16/Dxxo8j6PP2D_kU2muijlGMWWMmk.woff2') format('woff2');
     font-weight: 400;
+    font-style: normal;
   }
   @font-face {
     font-family: 'Vazirmatn';
-    src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Bold.woff2') format('woff2');
+    src: url('https://fonts.gstatic.com/s/vazirmatn/v16/Dxx78j6PP2D_kU2muijPEe1n2vVbfJRklY80CRWT7lDF.woff2') format('woff2');
     font-weight: 700;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'Baloo Bhaijaan 2';
+    src: url('https://fonts.gstatic.com/s/baloobhaijaan2/v21/zYXwKUwuEqdVGqM8tPDdAA_Y-_bMKo1EhQd2tWxo8Tx2TZP6JYtZfQ.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
   }
   @page { size: A4; margin: 20mm 18mm; }
   * { box-sizing: border-box; }
@@ -72,7 +88,7 @@ export function renderPdfDocumentHtml(doc: PdfDocumentInput): string {
     padding-bottom: 12px;
     margin-bottom: 20px;
   }
-  header.doc-header h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; color: #0f766e; }
+  header.doc-header h1 { font-family: 'Baloo Bhaijaan 2', 'Vazirmatn', Tahoma, sans-serif; font-size: 22px; font-weight: 700; margin: 0 0 4px; color: #0f766e; }
   header.doc-header .subtitle { font-size: 13px; color: #4b5563; }
   header.doc-header .meta { font-size: 11px; color: #9ca3af; margin-top: 6px; }
   .doc-section { margin-bottom: 18px; page-break-inside: avoid; }

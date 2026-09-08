@@ -14,7 +14,7 @@ export const SiteHeader: FC = () => (
         <span class="w-9 h-9 rounded-xl bg-teal-800 text-amber-300 flex items-center justify-center shadow-sm group-hover:shadow transition-shadow">
           <i class="fas fa-heart text-sm"></i>
         </span>
-        <span class="text-lg font-extrabold text-teal-900 tracking-tight">
+        <span class="text-lg font-display font-extrabold text-teal-900 tracking-tight">
           خانواده و رسانه
         </span>
       </a>

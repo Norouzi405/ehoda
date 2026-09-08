@@ -91,7 +91,7 @@ porseshkadehPagesRoute.get('/porseshkadeh', async (c) => {
       <section class="hero-gradient border-b border-stone-200/60">
         <main class="max-w-5xl mx-auto px-4 md:px-6 py-10">
           <div class="flex flex-wrap items-center justify-between gap-4 mb-2">
-            <h1 class="text-2xl font-extrabold text-stone-800">پرسش‌کدهٔ خانواده و رسانه</h1>
+            <h1 class="font-display text-2xl font-extrabold text-stone-800">پرسش‌کدهٔ خانواده و رسانه</h1>
             <a href="/porseshkadeh/ask" class="bg-teal-800 text-white px-5 py-2.5 rounded-full font-bold hover:bg-teal-900 text-sm transition-colors shadow-sm">
               <i class="fas fa-plus ms-1"></i>
               ثبت پرسش جدید
@@ -210,7 +210,7 @@ porseshkadehPagesRoute.get('/porseshkadeh/ask', async (c) => {
             <div class="w-12 h-12 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-4">
               <i class="fas fa-pen text-lg"></i>
             </div>
-            <h1 class="text-xl font-extrabold text-stone-800 mb-3">برای ثبت پرسش وارد شوید</h1>
+            <h1 class="font-display text-xl font-extrabold text-stone-800 mb-3">برای ثبت پرسش وارد شوید</h1>
             <p class="text-stone-500 text-sm mb-6">برای مطرح‌کردن پرسش در پرسش‌کده، ابتدا باید وارد حساب خود شوید.</p>
             <a href="/login" class="bg-teal-800 text-white px-6 py-3 rounded-full font-bold hover:bg-teal-900 inline-block transition-colors">
               ورود / ثبت‌نام
@@ -230,7 +230,7 @@ porseshkadehPagesRoute.get('/porseshkadeh/ask', async (c) => {
     <div dir="rtl">
       <SiteHeader />
       <main class="max-w-2xl mx-auto px-4 md:px-6 py-10">
-        <h1 class="text-2xl font-extrabold text-stone-800 mb-2">ثبت پرسش در پرسش‌کده</h1>
+        <h1 class="font-display text-2xl font-extrabold text-stone-800 mb-2">ثبت پرسش در پرسش‌کده</h1>
         <p class="text-stone-500 mb-8 text-sm">
           پرسش شما پس از بررسی و پالایش هویتی توسط ناظران، به‌صورت ناشناس در پرسش‌کده منتشر می‌شود.
         </p>
@@ -396,7 +396,7 @@ porseshkadehPagesRoute.get('/porseshkadeh/crisis-help', async (c) => (
           <div class="w-14 h-14 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto mb-4">
             <i class="fas fa-hand-holding-heart text-xl"></i>
           </div>
-          <h1 class="text-xl font-extrabold text-amber-900 mb-3">پرسش شما به‌صورت خصوصی ثبت شد</h1>
+          <h1 class="font-display text-xl font-extrabold text-amber-900 mb-3">پرسش شما به‌صورت خصوصی ثبت شد</h1>
           <p class="text-stone-600 mb-4">
             با توجه به محتوای پرسش شما، این موضوع حساس تشخیص داده شد و به‌صورت کاملاً خصوصی و مستقیم برای بررسی به
             یک استاد/کارشناس ارجاع شده است. این پرسش در فهرست عمومی پرسش‌کده منتشر نخواهد شد.
@@ -480,7 +480,7 @@ porseshkadehPagesRoute.get('/porseshkadeh/:slug', async (c) => {
           <div class="w-16 h-16 rounded-2xl bg-stone-100 text-stone-400 flex items-center justify-center mx-auto mb-4">
             <i class="fas fa-magnifying-glass text-xl"></i>
           </div>
-          <h1 class="text-2xl font-bold text-stone-800 mb-2">پرسش پیدا نشد</h1>
+          <h1 class="font-display text-2xl font-bold text-stone-800 mb-2">پرسش پیدا نشد</h1>
           <a href="/porseshkadeh" class="text-teal-800 font-bold hover:underline">بازگشت به پرسش‌کده</a>
         </main>
         <SiteFooter />
@@ -528,7 +528,7 @@ porseshkadehPagesRoute.get('/porseshkadeh/:slug', async (c) => {
             )}
           </div>
 
-          <h1 class="text-2xl md:text-3xl font-extrabold text-stone-800 mb-4 leading-snug">{question.publicTitle}</h1>
+          <h1 class="font-display text-2xl md:text-3xl font-extrabold text-stone-800 mb-4 leading-snug">{question.publicTitle}</h1>
 
           {question.publicBody && (
             <article class="prose prose-neutral max-w-none whitespace-pre-line leading-8 text-stone-600">
@@ -643,7 +643,7 @@ porseshkadehPagesRoute.get('/porseshkadeh/cartable', async (c) => {
           <div class="w-16 h-16 rounded-2xl bg-stone-100 text-stone-400 flex items-center justify-center mx-auto mb-4">
             <i class="fas fa-user-lock text-xl"></i>
           </div>
-          <h1 class="text-xl font-bold text-stone-800 mb-3">این صفحه فقط برای اساتید و کارشناسان است</h1>
+          <h1 class="font-display text-xl font-bold text-stone-800 mb-3">این صفحه فقط برای اساتید و کارشناسان است</h1>
           <p class="text-stone-500">حساب شما دسترسی کارتابل تخصصی ندارد.</p>
         </main>
         <SiteFooter />
@@ -666,7 +666,7 @@ porseshkadehPagesRoute.get('/porseshkadeh/cartable', async (c) => {
           <span class="w-11 h-11 rounded-xl bg-teal-800 text-amber-300 flex items-center justify-center">
             <i class="fas fa-briefcase"></i>
           </span>
-          <h1 class="text-2xl font-extrabold text-stone-800">
+          <h1 class="font-display text-2xl font-extrabold text-stone-800">
             کارتابل {profile.credentialType === 'professor' ? 'استاد' : 'کارشناس'}
           </h1>
         </div>
@@ -756,7 +756,7 @@ porseshkadehPagesRoute.get('/porseshkadeh/cartable/respond/:questionId', async (
         </nav>
 
         <div class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-6 mb-6">
-          <h1 class="text-xl font-extrabold text-stone-800 mb-2">{question.publicTitle || '(در انتظار بازبینی ناظر)'}</h1>
+          <h1 class="font-display text-xl font-extrabold text-stone-800 mb-2">{question.publicTitle || '(در انتظار بازبینی ناظر)'}</h1>
           {question.publicBody && <p class="text-stone-600 whitespace-pre-line leading-7">{question.publicBody}</p>}
         </div>
 
@@ -829,7 +829,7 @@ porseshkadehPagesRoute.get('/admin/moderation/questions', requirePermission('que
           <span class="w-11 h-11 rounded-xl bg-teal-800 text-amber-300 flex items-center justify-center">
             <i class="fas fa-shield-halved"></i>
           </span>
-          <h1 class="text-2xl font-extrabold text-stone-800">صف نظارت پرسش‌ها</h1>
+          <h1 class="font-display text-2xl font-extrabold text-stone-800">صف نظارت پرسش‌ها</h1>
         </div>
         <div class="grid gap-4">
           {items.length === 0 && (
@@ -884,7 +884,7 @@ porseshkadehPagesRoute.get('/admin/moderation/responses', requirePermission('res
           <span class="w-11 h-11 rounded-xl bg-teal-800 text-amber-300 flex items-center justify-center">
             <i class="fas fa-comments"></i>
           </span>
-          <h1 class="text-2xl font-extrabold text-stone-800">صف نظارت پاسخ‌ها</h1>
+          <h1 class="font-display text-2xl font-extrabold text-stone-800">صف نظارت پاسخ‌ها</h1>
         </div>
         <div class="grid gap-4">
           {items.length === 0 && (
@@ -936,7 +936,7 @@ porseshkadehPagesRoute.get('/admin/moderation/reports', requirePermission('moder
           <span class="w-11 h-11 rounded-xl bg-teal-800 text-amber-300 flex items-center justify-center">
             <i class="fas fa-flag"></i>
           </span>
-          <h1 class="text-2xl font-extrabold text-stone-800">صف گزارش‌های تخلف</h1>
+          <h1 class="font-display text-2xl font-extrabold text-stone-800">صف گزارش‌های تخلف</h1>
         </div>
         <div class="grid gap-4">
           {items.length === 0 && (

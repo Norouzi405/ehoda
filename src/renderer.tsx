@@ -26,20 +26,32 @@ export const renderer = jsxRenderer(({ children, title }) => {
                   },
                 },
                 fontFamily: {
-                  sans: ['Vazirmatn', 'Arial', 'sans-serif'],
+                  sans: ['Vazirmatn', 'Tahoma', 'Arial', 'sans-serif'],
+                  display: ['Baloo Bhaijaan 2', 'Vazirmatn', 'Tahoma', 'sans-serif'],
                 },
               },
             },
           }
         `}</script>
+        {/*
+          Font fix: the previous rastikerdar/vazirmatn jsDelivr @font-face link
+          returned 404 (repo restructured) and silently fell back to Arial —
+          this is why the whole site looked "system-default" instead of Persian.
+          Now loaded from Google Fonts' official, CDN-mirrored, always-on
+          endpoint: Vazirmatn for body text, Baloo Bhaijaan 2 (a warm, rounded
+          Persian display face) for headings/logo — matches the calming,
+          family-friendly art direction.
+        */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
         <link
-          href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Farsi-Digits/font-face.css"
+          href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&family=Baloo+Bhaijaan+2:wght@500;600;700;800&display=swap"
           rel="stylesheet"
         />
         <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet" />
         <link href="/static/style.css" rel="stylesheet" />
       </head>
-      <body class="bg-stone-50 text-stone-800" style="font-family: Vazirmatn, Arial, sans-serif;">
+      <body class="bg-stone-50 text-stone-800 font-sans">
         {children}
       </body>
     </html>

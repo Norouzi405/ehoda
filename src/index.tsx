@@ -52,7 +52,7 @@ app.get('/', async (c) => {
             <i class="fas fa-seedling"></i>
             فضایی آرام برای پرسش‌های واقعی خانواده
           </span>
-          <h1 class="text-3xl lg:text-4xl font-extrabold text-stone-800 mb-4 leading-tight">
+          <h1 class="font-display text-3xl lg:text-4xl font-extrabold text-stone-800 mb-4 leading-tight">
             هر دغدغه‌ای دربارهٔ فرزندتان دارید،
             <br class="hidden md:block" />
             اینجا با آرامش بپرسید.
@@ -109,7 +109,7 @@ app.get('/', async (c) => {
         {items.length > 0 && (
           <section class="py-16">
             <div class="flex items-center justify-between mb-6">
-              <h2 class="text-xl font-extrabold text-stone-800">تازه‌ترین محتوای مرجع</h2>
+              <h2 class="font-display text-xl font-extrabold text-stone-800">تازه‌ترین محتوای مرجع</h2>
               <a href="/contents" class="text-teal-800 text-sm font-bold hover:underline flex items-center gap-1">
                 مشاهدهٔ همه
                 <i class="fas fa-arrow-left text-xs"></i>
