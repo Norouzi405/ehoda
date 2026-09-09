@@ -36,7 +36,9 @@ INSERT OR IGNORE INTO permissions (key, label_fa, "group") VALUES
   ('settings.manage', 'مدیریت تنظیمات حساس', 'settings'),
   ('settings.manage_rate_limits', 'مدیریت محدودیت نرخ', 'settings'),
   ('settings.manage_crisis_messages', 'مدیریت پیام‌های ارجاع بحران', 'settings'),
-  ('audit.view', 'مشاهدهٔ Audit Log', 'audit');
+  ('audit.view', 'مشاهدهٔ Audit Log', 'audit'),
+  ('tools.manage', 'مدیریت/مشاهدهٔ ابزارها (ادمین ابزارخانه)', 'tools'),
+  ('system.export_backup', 'خروجی‌گیری کامل از بانک اطلاعاتی (بک‌آپ سیستم)', 'system');
 
 -- ===================== Role -> Permission mapping =====================
 -- member
@@ -61,7 +63,7 @@ WHERE r.key = 'moderator' AND p.key IN (
   'question.create','response.create','response.reply','response.edit_own',
   'question.view_private','question.moderate','question.assign',
   'response.moderate','moderation.view_queue','moderation.resolve_report',
-  'moderation.restrict_user','content.publish'
+  'moderation.restrict_user','content.publish','tools.manage'
 );
 
 -- scientific_manager (moderator + professional + editorial)
@@ -74,7 +76,7 @@ WHERE r.key = 'scientific_manager' AND p.key IN (
   'moderation.view_queue','moderation.resolve_report','moderation.restrict_user',
   'professional.invite','professional.approve','professional.manage_expertise',
   'content.create','content.publish','content.manage_categories','audit.view',
-  'settings.manage_crisis_messages'
+  'settings.manage_crisis_messages','tools.manage'
 );
 
 -- super_admin gets every permission explicitly too (defense in depth,
@@ -333,6 +335,16 @@ SELECT id, 'امیر یوسفی', 'امیر یوسفی', 1, 'other'
 FROM users WHERE phone_number = '+989120000104';
 INSERT OR IGNORE INTO model_has_roles (user_id, role_id)
 SELECT u.id, r.id FROM users u, roles r WHERE u.phone_number = '+989120000104' AND r.key = 'moderator';
+
+-- 4b. Super-admin test account — for testing /admin/export/backup and any
+--     other super_admin-only endpoint (Phase 3 requirement).
+INSERT OR IGNORE INTO users (phone_number, phone_verified_at, status, trust_level) VALUES
+  ('+989120000199', (strftime('%Y-%m-%dT%H:%M:%fZ','now')), 'active', 'trusted');
+INSERT OR IGNORE INTO profiles (user_id, display_name, real_name, show_real_name, profile_type)
+SELECT id, 'مدیر اصلی سامانه', 'مدیر اصلی سامانه', 1, 'other'
+FROM users WHERE phone_number = '+989120000199';
+INSERT OR IGNORE INTO model_has_roles (user_id, role_id)
+SELECT u.id, r.id FROM users u, roles r WHERE u.phone_number = '+989120000199' AND r.key = 'super_admin';
 
 -- 5. Two extra plain member accounts, used as thread participants /
 --    reply authors below (so the sample threads don't all look like a

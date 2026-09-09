@@ -8,6 +8,8 @@ import { contentRoute } from './routes/content'
 import { pagesRoute } from './routes/pages'
 import { porseshkadehRoute } from './routes/porseshkadeh.api'
 import { porseshkadehPagesRoute } from './routes/porseshkadeh.pages'
+import { toolsRoute } from './routes/tools.api'
+import { filesRoute } from './routes/files'
 import { attachCurrentUser } from './middleware/auth'
 import { buildAppContext } from './lib/context'
 import { createContentRepository } from './repositories/content.repository'
@@ -25,6 +27,8 @@ app.route('/api', devToolsRoute) // Diagnostic-only Mock-OTP echo, see routes/de
 app.route('/api', authRoute)
 app.route('/api', contentRoute)
 app.route('/api', porseshkadehRoute)
+app.route('/api', toolsRoute) // Interactive Toolkit House JSON API (spec §11), see routes/tools.api.ts
+app.route('/', filesRoute) // Signed R2 download proxy, see routes/files.ts
 
 // --- Server-rendered public pages (D-004) ---
 app.route('/', pagesRoute)

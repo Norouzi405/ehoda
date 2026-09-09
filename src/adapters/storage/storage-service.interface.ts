@@ -13,4 +13,12 @@ export interface StorageService {
   getSignedUrl(key: string, expiresInSeconds: number): Promise<string | null>
   get(key: string): Promise<ArrayBuffer | null>
   delete(key: string): Promise<void>
+  /**
+   * Verifies a `(key, exp, sig)` triple produced by `getSignedUrl` (see
+   * src/routes/files.ts, the only consumer). Adapters that have no native
+   * signed-URL primitive (R2) implement real HMAC verification here;
+   * adapters on platforms with native signed URLs (S3 presigned, etc.) can
+   * return `true` unconditionally since the platform already enforces it.
+   */
+  verifySignedAccess(key: string, expiresAtMs: number, signature: string): Promise<boolean>
 }

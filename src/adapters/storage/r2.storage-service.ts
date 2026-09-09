@@ -1,4 +1,5 @@
 import type { StorageService, StoragePutResult } from './storage-service.interface'
+import { timingSafeEqual } from '../../lib/crypto'
 
 /**
  * Cloudflare R2 implementation of StorageService. On VPS migration, replace
@@ -34,6 +35,12 @@ export class R2StorageService implements StorageService {
     const expiresAt = Date.now() + expiresInSeconds * 1000
     const token = await this.sign(key, expiresAt)
     return `/files/${encodeURIComponent(key)}?exp=${expiresAt}&sig=${token}`
+  }
+
+  async verifySignedAccess(key: string, expiresAtMs: number, signature: string): Promise<boolean> {
+    if (!Number.isFinite(expiresAtMs) || expiresAtMs < Date.now()) return false
+    const expected = await this.sign(key, expiresAtMs)
+    return timingSafeEqual(expected, signature)
   }
 
   private async sign(key: string, expiresAt: number): Promise<string> {
