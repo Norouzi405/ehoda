@@ -223,3 +223,45 @@ brief — exactly how to reverse/replace it during a VPS migration.
   (a silent-empty-result rather than an error) — flagged here so the ops
   team knows to keep the two slug sets aligned when editing either
   taxonomy from the admin panel.
+
+### D-014 — Phase 3: backup export packaged as one JSON manifest; `tools.manage` vs `system.export_backup` kept as two separate permissions
+- **Context**: `migration-guide-to-vps.md` §2 originally sketched the
+  full-system export as "one JSON file per table plus a `schema.sql`
+  dump" (i.e. N+1 separate files/blobs).
+- **Decision**: Implemented as a **single JSON document**
+  (`{ generatedAt, schemaSql, tables: { <name>: [...] } }`) uploaded as
+  one R2 object, rather than N+1 separate objects. Rationale: (1) a
+  single object is trivially easier to sign/download/verify through the
+  existing `StorageService.getSignedUrl` + `/files/:key` machinery (one
+  signature, one link, no partial-download edge cases); (2) full
+  reconstruction is unaffected — the manifest already separates
+  `schemaSql` from `tables`, so a migration script can still emit
+  per-table `INSERT` statements or per-table files from this single
+  document trivially; (3) D1 requires sequential per-table dumps in this
+  implementation anyway (`buildBackup()` deliberately awaits each table
+  dump one at a time, not `Promise.all`, to avoid rate-limiting D1) — a
+  single output object doesn't add extra work over N+1 objects. This
+  substitution is disclosed here and in the Phase 3 completion report.
+- **`tools.manage` vs `system.export_backup` — two separate permissions,
+  not one**: `tools.manage` (view/manage others' tool submissions,
+  bypass the ownership check on `GET /api/tools/submissions/:id` and
+  `.../pdf`) is granted to `moderator` and `scientific_manager` in
+  `seeders/seed.sql`, per the client's Phase 3 brief allowing those roles
+  if deemed appropriate. `system.export_backup` (full database export) is
+  **only** granted to `super_admin` — deliberately NOT extended to
+  `moderator`/`scientific_manager` even though they hold `tools.manage`,
+  because a full-database export is a materially higher-risk operation
+  (exposes every user's phone number, every table, not just tool
+  submissions) than reviewing tool answers. Verified with both a passing
+  unit test (`tests/backup-security.test.ts`) and a live HTTP check: an
+  authenticated `moderator`-role-having account hitting
+  `POST /admin/export/backup` gets `403 {"error":"forbidden","required_permission":"system.export_backup"}`,
+  never a silent bypass via `tools.manage`.
+- **Signed-URL scheme reused, not reinvented**: both the per-tool PDF
+  download and the admin backup download reuse the exact same
+  `StorageService.getSignedUrl` / `verifySignedAccess` / `/files/:key`
+  path (added to the `StorageService` interface this phase — R2 has no
+  native signed-URL primitive, so `R2StorageService` implements its own
+  HMAC-SHA256 scheme with constant-time comparison). This keeps exactly
+  one signed-download code path to audit/migrate instead of two
+  divergent ones.

@@ -4,11 +4,16 @@ This is the authoritative contract for every HTTP endpoint. Any engineer
 or AI system rebuilding this platform on another stack must reproduce
 these exact request/response shapes — see `migration-guide-to-vps.md`.
 
-> Status: Phase 1 (Content module + Auth/OTP) and Phase 2 (پرسش‌کدهٔ
-> خانواده و رسانه — Questions/Responses/Moderation/Cartable) implemented
-> and verified end-to-end against a local D1 database, including seeded
-> realistic Q&A threads. Phase 3 (Tools/Admin export) section below
-> remains planned. This file is updated in the same commit as any route
+> Status: Phase 1 (Content module + Auth/OTP), Phase 2 (پرسش‌کدهٔ
+> خانواده و رسانه — Questions/Responses/Moderation/Cartable), and Phase 3
+> (ابزارخانهٔ تعاملی — Interactive Toolkit tools + PDF export +
+> super_admin backup export) are all implemented and verified end-to-end
+> against a local D1 database. Persian PDF rendering itself depends on
+> Cloudflare Browser Rendering secrets (`CLOUDFLARE_ACCOUNT_ID` /
+> `CLOUDFLARE_API_TOKEN`), which are not configured in this sandbox — the
+> route/auth/ownership logic is fully verified, only the actual
+> browser-render call is blocked pending those secrets in a real
+> deployment. This file is updated in the same commit as any route
 > addition/change (never left to drift).
 
 ## Conventions
@@ -234,23 +239,90 @@ and `GET /porseshkadeh/cartable/respond/:questionId` (professional
 cartable), and `GET /admin/moderation/{questions,responses,reports}`
 (moderation queues).
 
-## Tools (planned, spec §11)
+## ابزارخانهٔ تعاملی — Interactive Toolkit House (Phase 3, implemented, spec §11)
+
+Three form-driven tools, each with an RTL step-based wizard page (SSR,
+progressive enhancement via `public/static/tools-wizard.js`), an
+in-browser text/JSON preview before download, and an optional Persian PDF
+export. Anonymous users may fill out and preview any tool; only
+authenticated users get their answers persisted (`tool_submissions` table,
+user-linked) and can request a PDF. Tool slugs (DB `tools.slug`, matches
+`seeders/seed.sql`):
+
+| Page route | Tool slug | Steps | Verdict/output |
+| --- | --- | --- | --- |
+| `/tools/family-agreement` | `family_media_contract` | 3 | خلاصهٔ توافق‌نامه + تاریخ بازبینی ماهانه |
+| `/tools/phone-readiness` | `phone_readiness_checklist` | 4 (1 per axis) | `ready` \| `conditionally_ready` \| `needs_more_practice` |
+| `/tools/media-style-quiz` | `media_style_quiz` | 5 (1 per axis) | نقاط قوت/چالش + برنامهٔ عملی ۷ روزه |
+
+### `GET /tools/family-agreement`, `/tools/phone-readiness`, `/tools/media-style-quiz`
+SSR wizard pages (`src/routes/tools.pages.tsx`). No auth required to view
+or fill out — an inline notice is shown to guest users explaining that
+sign-in is only needed to save the result or download a PDF.
 
 ### `POST /api/tools/:slug/submit`
-Auth required for saving + PDF; anonymous preview allowed without saving.
-Body: tool-specific answers JSON. Response: `{ "submissionId": number, "result": {...} }`.
+No auth required for preview (anonymous submissions are scored but never
+persisted — `submissionId: null`). If the requester has a session, the
+answers + computed result are persisted to `tool_submissions` and
+`submissionId` is a real row id. Body: tool-specific answers JSON (per-tool
+Zod schemas in `src/routes/tools.api.ts`). Response:
+`{ "submissionId": number | null, "result": {...} }`. The `result` shape
+is tool-specific (see `src/services/tool.service.ts` for
+`FamilyAgreementResult` / phone-readiness verdict object /
+media-style-quiz strengths+challenges+7-day-plan object) — this is exactly
+what the in-browser preview renders.
+
+### `GET /api/tools/submissions/:id`
+In-browser text/JSON preview endpoint (mandatory pre-download preview).
+Auth required. 401 `{"error":"unauthenticated"}` with no session. 403
+`{"error":"forbidden"}` if the session's user is neither the submission's
+owner nor holds the `tools.manage` permission. Response:
+`{ "submissionId", "toolId", "result", "createdAt" }`.
 
 ### `GET /api/tools/submissions/:id/pdf`
-Returns a signed, time-limited redirect to the R2-stored PDF (see
-`R2StorageService.getSignedUrl`). 403 if the requester is not the owner or
-an authorized admin.
+Renders the Persian PDF (Vazirmatn, RTL, via the standard
+`pdf-template.service.ts` + `BrowserRenderingPdfAdapter`) — reusing a
+still-valid cached export from `pdf_exports` when available, otherwise
+rendering fresh and uploading to R2 at `tool-pdfs/<slug>/<id>-<ts>.pdf`.
+Auth required; same ownership/`tools.manage` gate as above (401
+unauthenticated / 403 forbidden). Returns a signed, time-limited (30 min)
+download URL: `{ "downloadUrl": "/files/<key>?exp=...&sig=...", "expiresInSeconds": 1800 }`.
+502 `{"error":"pdf_generation_failed"}` if the Cloudflare Browser
+Rendering secrets (`CLOUDFLARE_ACCOUNT_ID` / `CLOUDFLARE_API_TOKEN`) are
+not configured in the current environment (same pre-existing
+infra-dependency as the Gate Check PDF sample — not tool-specific).
 
-## Admin / data portability (spec §12, portability rule 3.3)
+### `GET /files/:key`
+Generic signed-download proxy for anything stored in R2 via
+`StorageService.getSignedUrl` (tool PDFs, admin backups). Verifies `exp`
+(expiry, ms epoch) and `sig` (HMAC-SHA256 over `key + exp`, see
+`R2StorageService.verifySignedAccess`) query params using a
+constant-time comparison. 403 `{"error":"link_expired_or_invalid"}` if
+expired or the signature doesn't match; otherwise streams the R2 object
+body with `Content-Type` inferred from the file extension and
+`Cache-Control: private, max-age=0, no-store`.
+
+## Admin / data portability (spec §12, portability rule 3.3, implemented)
 
 ### `POST /admin/export/backup`
-Auth: `super_admin` only. Triggers a full data export (JSON per table +
-`schema.sql`) to R2 and returns a signed download URL. See
-`migration-guide-to-vps.md` §2.
+Auth: `super_admin` only, enforced via `requirePermission('system.export_backup')`
+(401 `{"error":"unauthenticated"}` with no session; 403
+`{"error":"forbidden","required_permission":"system.export_backup"}` for
+any authenticated user lacking the permission — including `moderator`
+and `scientific_manager`, which is a deliberate choice: this permission is
+NOT granted to those roles even though they do get `tools.manage`).
+Builds a full backup by introspecting `sqlite_master` for every
+user-defined table, dumping each table's rows via raw SQL
+(`sql.identifier()`-guarded against injection) plus the full
+`CREATE TABLE`/`CREATE INDEX` schema SQL, and packages everything into a
+**single JSON document** (not one file per table as originally sketched
+in `migration-guide-to-vps.md` — kept as one object for simplicity; still
+fully reconstructable):
+`{ "generatedAt": "<ISO8601>", "schemaSql": "<concatenated DDL>", "tables": { "<name>": [ {...row...}, ... ] } }`.
+Uploaded to R2 at `backups/backup-<timestamp>.json`. Response:
+`{ "downloadUrl": "/files/<key>?exp=...&sig=...", "expiresInSeconds": 900, "tableCount": number, "generatedAt": "<ISO8601>" }`.
+See `migration-guide-to-vps.md` §2 for how to replay this manifest against
+a fresh database on another server/stack.
 
 ---
 

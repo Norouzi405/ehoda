@@ -9,6 +9,8 @@ import { pagesRoute } from './routes/pages'
 import { porseshkadehRoute } from './routes/porseshkadeh.api'
 import { porseshkadehPagesRoute } from './routes/porseshkadeh.pages'
 import { toolsRoute } from './routes/tools.api'
+import { toolsPagesRoute } from './routes/tools.pages'
+import { adminRoute } from './routes/admin'
 import { filesRoute } from './routes/files'
 import { attachCurrentUser } from './middleware/auth'
 import { buildAppContext } from './lib/context'
@@ -33,6 +35,8 @@ app.route('/', filesRoute) // Signed R2 download proxy, see routes/files.ts
 // --- Server-rendered public pages (D-004) ---
 app.route('/', pagesRoute)
 app.route('/', porseshkadehPagesRoute)
+app.route('/', toolsPagesRoute) // Interactive Toolkit House wizard pages (spec §11)
+app.route('/', adminRoute) // POST /admin/export/backup (spec §12, super_admin only)
 
 app.get('/', async (c) => {
   const ctx = buildAppContext(c)
@@ -137,6 +141,35 @@ app.get('/', async (c) => {
             </div>
           </section>
         )}
+
+        <section class="py-16 border-t border-stone-200">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="font-display text-xl font-extrabold text-stone-800">ابزارخانهٔ تعاملی</h2>
+          </div>
+          <div class="grid gap-6 md:grid-cols-3">
+            <a href="/tools/family-agreement" class="soft-card block bg-white rounded-2xl border border-stone-200/70 shadow-sm hover:shadow-md p-6">
+              <div class="w-10 h-10 rounded-xl bg-teal-800/10 text-teal-800 flex items-center justify-center mb-3">
+                <i class="fas fa-file-signature"></i>
+              </div>
+              <h3 class="font-extrabold text-stone-800 mb-2">قرارداد رسانه‌ای خانواده</h3>
+              <p class="text-stone-500 text-sm">توافق‌نامهٔ شخصی‌سازی‌شده برای استفاده از رسانه در خانواده، با بازبینی ماهانه.</p>
+            </a>
+            <a href="/tools/phone-readiness" class="soft-card block bg-white rounded-2xl border border-stone-200/70 shadow-sm hover:shadow-md p-6">
+              <div class="w-10 h-10 rounded-xl bg-teal-800/10 text-teal-800 flex items-center justify-center mb-3">
+                <i class="fas fa-mobile-screen"></i>
+              </div>
+              <h3 class="font-extrabold text-stone-800 mb-2">چک‌لیست آمادگی دریافت گوشی</h3>
+              <p class="text-stone-500 text-sm">ارزیابی چندبعدی آمادگی فرزند شما برای دریافت گوشی شخصی.</p>
+            </a>
+            <a href="/tools/media-style-quiz" class="soft-card block bg-white rounded-2xl border border-stone-200/70 shadow-sm hover:shadow-md p-6">
+              <div class="w-10 h-10 rounded-xl bg-teal-800/10 text-teal-800 flex items-center justify-center mb-3">
+                <i class="fas fa-chart-simple"></i>
+              </div>
+              <h3 class="font-extrabold text-stone-800 mb-2">آزمون سبک رسانه‌ای خانواده</h3>
+              <p class="text-stone-500 text-sm">شناسایی نقاط قوت و حوزه‌های نیازمند توجه، به‌همراه یک برنامهٔ عملی ۷ روزه.</p>
+            </a>
+          </div>
+        </section>
 
         <section class="pb-16 border-t border-stone-200 pt-10">
           <h2 class="text-lg font-extrabold text-stone-800 mb-2">اثبات فنی PDF فارسی (Gate Check)</h2>

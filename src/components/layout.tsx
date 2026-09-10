@@ -26,6 +26,9 @@ export const SiteHeader: FC = () => (
         <a href="/porseshkadeh" class="px-3 py-2 rounded-full text-stone-600 hover:text-teal-800 hover:bg-stone-100 transition-colors">
           پرسش‌کده
         </a>
+        <a href="/tools/family-agreement" class="px-3 py-2 rounded-full text-stone-600 hover:text-teal-800 hover:bg-stone-100 transition-colors">
+          ابزارخانه
+        </a>
       </nav>
 
       <div class="flex items-center gap-2">

@@ -95,6 +95,32 @@ PostgreSQL mapping for both additions follows the same table above:
 `token_hash`/`request_id` → `text UNIQUE`, `expires_at`/`last_seen_at`
 → `timestamptz`.
 
+## `schema/tools.ts` — Interactive Toolkit (Phase 3, implemented)
+
+```
+tools                     (catalog row per tool: slug, title_fa, is_active)
+tool_submissions
+├── id
+├── tool_id            -> tools.id
+├── user_id            -> users.id (NULL for anonymous — never persisted, see decisions.md D-014/services)
+├── answers_json         (raw form input, tool-specific shape)
+├── result_json          (computed FamilyAgreementResult / phone-readiness verdict / media-style result)
+└── created_at
+pdf_exports
+├── id
+├── submission_id      -> tool_submissions.id
+├── r2_key                (object key in the R2 bucket, e.g. tool-pdfs/<slug>/<id>-<ts>.pdf)
+├── status                (pending|ready|failed)
+└── created_at / expires_at
+```
+
+No schema changes were required for Phase 3 (these tables already existed
+from earlier scaffolding) — only new seed data: two permissions
+(`tools.manage`, `system.export_backup` — see `decisions.md` D-014 for why
+they're kept separate) and one `super_admin` test account. `PdfExportRecord`
+rows act as a short-lived cache so re-downloading the same submission's PDF
+within its validity window skips re-rendering.
+
 ## Full-text search (MVP)
 
 MVP search uses SQLite FTS5 virtual tables (external content tables
