@@ -19,7 +19,11 @@ import { CURRENT_USER_ID_KEY } from '../middleware/rbac'
 import { SiteHeader, SiteFooter } from '../components/layout'
 import {
   DEVICE_OPTIONS,
-  SENSITIVE_SITUATIONS,
+  FAMILY_VALUES,
+  FAMILY_VALUES_MIN,
+  FAMILY_VALUES_MAX,
+  CLAUSE_LIBRARY,
+  RESTORATIVE_ACTIONS,
   PHONE_READINESS_AXES,
   MEDIA_STYLE_AXES,
 } from '../services/tool.service'
@@ -151,21 +155,48 @@ toolsPagesRoute.get('/tools/family-agreement', async (c) => {
   return c.render(
     <WizardShell
       toolSlug="family_media_contract"
-      totalSteps={3}
-      title="قرارداد رسانه‌ای خانواده"
-      description="یک توافق‌نامهٔ شخصی‌سازی‌شده برای استفاده از رسانه در خانواده بسازید — با مشارکت همهٔ اعضا و بازبینی ماهانه."
+      totalSteps={4}
+      title="پیمان‌نامهٔ رسانه‌ای خانواده"
+      description="یک پیمان‌نامهٔ گرم و مبتنی بر تفاهم برای فضای دیجیتال خانواده بسازید — با ارزش‌های مشترک، تعهدهای دوطرفه و بازبینی ماهانه."
       isAuthenticated={isAuthenticated}
     >
-      <StepIndicators steps={['اعضا و دستگاه‌ها', 'موقعیت‌های حساس و تعهدها', 'بازبینی و ارسال']} />
+      <StepIndicators steps={['ارزش‌های خانواده', 'اعضا و دستگاه‌ها', 'تعهدهای دوطرفه', 'راه‌حل جبرانی و ارسال']} />
       <form id="tool-wizard-form">
-        {/* ---- Step 1: family members + devices ---- */}
+        {/* ---- Step 1: shared family values (client directive §2) ---- */}
         <section data-step="1" class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-6 mb-4">
+          <h2 class="font-extrabold text-stone-800 mb-4 flex items-center gap-2">
+            <i class="fas fa-seedling text-teal-800"></i>
+            ارزش‌های مشترک خانواده
+          </h2>
+          <p class="text-stone-500 text-sm mb-4">
+            پیش از هر قانونی، بیایید با هم ۳ تا ۵ ارزش اصلی خانواده‌مان را انتخاب کنیم. این پیمان‌نامه بر پایهٔ همین ارزش‌ها نوشته می‌شود.
+          </p>
+
+          <div id="family-values-group" class="flex flex-wrap gap-2 mb-2">
+            {FAMILY_VALUES.map((v) => (
+              <label class="flex items-center gap-1.5 text-sm text-stone-600 border border-stone-200 rounded-full px-3 py-1.5 cursor-pointer hover:border-teal-700">
+                <input type="checkbox" name="familyValueKeys" value={v.key} class="accent-teal-800" />
+                {v.labelFa}
+              </label>
+            ))}
+          </div>
+          <p id="family-values-hint" class="text-xs text-stone-400 mb-4">{`لطفاً بین ${FAMILY_VALUES_MIN} تا ${FAMILY_VALUES_MAX} ارزش را انتخاب کنید.`}</p>
+
+          <div class="mt-6 flex justify-end">
+            <button type="button" data-next="2" class="bg-teal-800 text-white px-6 py-2.5 rounded-full font-bold hover:bg-teal-900 transition-colors">
+              مرحلهٔ بعد
+            </button>
+          </div>
+        </section>
+
+        {/* ---- Step 2: family members + devices ---- */}
+        <section data-step="2" class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-6 mb-4 hidden">
           <h2 class="font-extrabold text-stone-800 mb-4 flex items-center gap-2">
             <i class="fas fa-people-roof text-teal-800"></i>
             اعضای خانواده و دستگاه‌ها
           </h2>
 
-          <label class={fieldLabel}>اعضای خانواده</label>
+          <label class={fieldLabel}>اعضای خانواده (امضاکنندگان این پیمان‌نامه)</label>
           <div id="family-member-list" class="space-y-2 mb-3"></div>
           <template id="family-member-row-template">
             <div data-member-row class="flex items-center gap-2">
@@ -184,7 +215,7 @@ toolsPagesRoute.get('/tools/family-agreement', async (c) => {
             افزودن عضو
           </button>
 
-          <label class={fieldLabel}>دستگاه‌های تحت پوشش این توافق</label>
+          <label class={fieldLabel}>دستگاه‌های تحت پوشش این پیمان‌نامه</label>
           <div class="flex flex-wrap gap-2 mb-4">
             {DEVICE_OPTIONS.map((d) => (
               <label class="flex items-center gap-1.5 text-sm text-stone-600 border border-stone-200 rounded-full px-3 py-1.5 cursor-pointer hover:border-teal-700">
@@ -193,36 +224,6 @@ toolsPagesRoute.get('/tools/family-agreement', async (c) => {
               </label>
             ))}
           </div>
-
-          <div class="mt-6 flex justify-end">
-            <button type="button" data-next="2" class="bg-teal-800 text-white px-6 py-2.5 rounded-full font-bold hover:bg-teal-900 transition-colors">
-              مرحلهٔ بعد
-            </button>
-          </div>
-        </section>
-
-        {/* ---- Step 2: sensitive situations + commitments ---- */}
-        <section data-step="2" class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-6 mb-4 hidden">
-          <h2 class="font-extrabold text-stone-800 mb-4 flex items-center gap-2">
-            <i class="fas fa-triangle-exclamation text-teal-800"></i>
-            موقعیت‌های حساس و تعهدها
-          </h2>
-
-          <label class={fieldLabel}>موقعیت‌های حساسی که در خانواده ممکن است رخ دهد</label>
-          <div class="flex flex-wrap gap-2 mb-4">
-            {SENSITIVE_SITUATIONS.map((s) => (
-              <label class="flex items-center gap-1.5 text-sm text-stone-600 border border-stone-200 rounded-full px-3 py-1.5 cursor-pointer hover:border-teal-700">
-                <input type="checkbox" name="sensitiveSituations" value={s.key} class="accent-teal-800" />
-                {s.labelFa}
-              </label>
-            ))}
-          </div>
-
-          <label class={fieldLabel}>تعهدهای والدین (هر مورد در یک سطر)</label>
-          <textarea name="parentCommitmentsText" rows="3" class={fieldInput} placeholder={'مثلاً: در زمان غذا، گوشی کنار گذاشته می‌شود.'}></textarea>
-
-          <label class={fieldLabel}>تعهدهای فرزند (هر مورد در یک سطر)</label>
-          <textarea name="childCommitmentsText" rows="3" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 bg-stone-50/50 focus:outline-none focus:ring-2 focus:ring-teal-700/30 focus:border-teal-700 focus:bg-white transition-colors" placeholder={'مثلاً: قبل از دوستی با افراد ناشناس اطلاع می‌دهم.'}></textarea>
 
           <div class="mt-6 flex justify-between">
             <button type="button" data-prev="1" class="bg-white border border-stone-200 text-stone-600 px-6 py-2.5 rounded-full font-bold hover:border-teal-700 hover:text-teal-800 transition-colors">
@@ -234,32 +235,95 @@ toolsPagesRoute.get('/tools/family-agreement', async (c) => {
           </div>
         </section>
 
-        {/* ---- Step 3: monthly review date + submit ---- */}
+        {/* ---- Step 3: mutual/bidirectional clause library (client directive §1) ---- */}
         <section data-step="3" class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-6 mb-4 hidden">
+          <h2 class="font-extrabold text-stone-800 mb-4 flex items-center gap-2">
+            <i class="fas fa-handshake-simple text-teal-800"></i>
+            تعهدهای دوطرفه
+          </h2>
+          <p class="text-stone-500 text-sm mb-4">
+            موضوع‌هایی را انتخاب کنید که برای خانواده‌تان مهم هستند. هر موضوع، یک تعهد از سوی والدین و یک تعهد از سوی فرزند دارد — این پیمان یک‌طرفه نیست.
+          </p>
+
+          <div class="space-y-3 mb-4">
+            {CLAUSE_LIBRARY.map((clause) => (
+              <label class="flex items-start gap-3 border border-stone-200 rounded-xl p-3 cursor-pointer hover:border-teal-700 has-[:checked]:border-teal-700 has-[:checked]:bg-teal-50/40">
+                <input type="checkbox" name="selectedClauseKeys" value={clause.key} class="accent-teal-800 mt-1" />
+                <span>
+                  <span class="block font-bold text-stone-800 mb-1">{clause.topicLabelFa}</span>
+                  <span class="block text-xs text-stone-500 mb-0.5">
+                    <i class="fas fa-user-tie ms-1 text-teal-700"></i>
+                    {clause.parentTextFa}
+                  </span>
+                  <span class="block text-xs text-stone-500">
+                    <i class="fas fa-child-reaching ms-1 text-amber-600"></i>
+                    {clause.childTextFa}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+
+          <label class={fieldLabel}>تعهدهای تکمیلی والدین (اختیاری، هر مورد در یک سطر)</label>
+          <textarea name="customParentCommitmentsText" rows="2" class={fieldInput} placeholder={'مثلاً: ما توافق می‌کنیم در زمان تکالیف، خودمان هم گوشی را کنار بگذاریم.'}></textarea>
+
+          <label class={fieldLabel}>تعهدهای تکمیلی فرزند (اختیاری، هر مورد در یک سطر)</label>
+          <textarea name="customChildCommitmentsText" rows="2" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 bg-stone-50/50 focus:outline-none focus:ring-2 focus:ring-teal-700/30 focus:border-teal-700 focus:bg-white transition-colors" placeholder={'مثلاً: من متعهد می‌شوم پیش از خواب، گوشی را به پدر و مادرم بسپارم.'}></textarea>
+
+          <div class="mt-6 flex justify-between">
+            <button type="button" data-prev="2" class="bg-white border border-stone-200 text-stone-600 px-6 py-2.5 rounded-full font-bold hover:border-teal-700 hover:text-teal-800 transition-colors">
+              مرحلهٔ قبل
+            </button>
+            <button type="button" data-next="4" class="bg-teal-800 text-white px-6 py-2.5 rounded-full font-bold hover:bg-teal-900 transition-colors">
+              مرحلهٔ بعد
+            </button>
+          </div>
+        </section>
+
+        {/* ---- Step 4: restorative actions (replaces "penalty") + monthly review date + submit ---- */}
+        <section data-step="4" class="bg-white rounded-2xl border border-stone-200/70 shadow-sm p-6 mb-4 hidden">
+          <h2 class="font-extrabold text-stone-800 mb-4 flex items-center gap-2">
+            <i class="fas fa-hand-holding-heart text-teal-800"></i>
+            اگر روزی از پیمان فاصله گرفتیم...
+          </h2>
+          <p class="text-stone-500 text-sm mb-4">
+            به‌جای جریمه، از پیش با هم تصمیم می‌گیریم که اگر کسی از قانون سرپیچی کرد، با همفکری چه راه‌حل جبرانی‌ای انجام دهیم.
+          </p>
+
+          <label class={fieldLabel}>راه‌حل‌های جبرانی مورد توافق (می‌توانید چند مورد انتخاب کنید)</label>
+          <div class="flex flex-wrap gap-2 mb-6">
+            {RESTORATIVE_ACTIONS.map((a) => (
+              <label class="flex items-center gap-1.5 text-sm text-stone-600 border border-stone-200 rounded-full px-3 py-1.5 cursor-pointer hover:border-teal-700">
+                <input type="checkbox" name="restorativeActionKeys" value={a.key} class="accent-teal-800" />
+                {a.labelFa}
+              </label>
+            ))}
+          </div>
+
           <h2 class="font-extrabold text-stone-800 mb-4 flex items-center gap-2">
             <i class="fas fa-calendar-check text-teal-800"></i>
             تاریخ بازبینی ماهانه
           </h2>
 
-          <label class={fieldLabel}>تاریخ نخستین بازبینی این توافق</label>
+          <label class={fieldLabel}>تاریخ نخستین بازبینی این پیمان‌نامه</label>
           <input name="reviewDate" type="date" class="w-full border border-stone-200 rounded-xl px-3 py-2.5 bg-stone-50/50 focus:outline-none focus:ring-2 focus:ring-teal-700/30 focus:border-teal-700 focus:bg-white transition-colors" required />
 
           <p class="text-stone-500 text-sm mt-4 mb-6">
-            پس از ارسال، خلاصهٔ توافق را در همین صفحه پیش‌نمایش می‌بینید و در صورت ورود به حساب، می‌توانید نسخهٔ PDF آن را دانلود کنید.
+            پس از ارسال، متن کامل پیمان‌نامه را در همین صفحه پیش‌نمایش می‌بینید و در صورت ورود به حساب، می‌توانید نسخهٔ PDF آن را دانلود کنید.
           </p>
 
           <div class="flex justify-between">
-            <button type="button" data-prev="2" class="bg-white border border-stone-200 text-stone-600 px-6 py-2.5 rounded-full font-bold hover:border-teal-700 hover:text-teal-800 transition-colors">
+            <button type="button" data-prev="3" class="bg-white border border-stone-200 text-stone-600 px-6 py-2.5 rounded-full font-bold hover:border-teal-700 hover:text-teal-800 transition-colors">
               مرحلهٔ قبل
             </button>
             <button type="submit" id="tool-wizard-submit-btn" class="bg-teal-800 text-white px-6 py-2.5 rounded-full font-bold hover:bg-teal-900 transition-colors">
-              ثبت توافق‌نامه
+              امضا و ثبت پیمان‌نامه
             </button>
           </div>
         </section>
       </form>
     </WizardShell>,
-    { title: 'قرارداد رسانه‌ای خانواده' },
+    { title: 'پیمان‌نامهٔ رسانه‌ای خانواده' },
   )
 })
 

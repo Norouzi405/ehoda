@@ -25,9 +25,23 @@
  * pattern used for `question.repository.ts`'s raw/private DTOs.
  */
 import type { ToolRepository, ToolRecord, ToolSubmissionRecord } from '../repositories/tool.repository'
+import { formatJalaliDateFa } from '../lib/jalali'
 
 // ==========================================================================
-// 1. Family Media Agreement (family_media_contract)
+// 1. Family Media Agreement — "پیمان‌نامهٔ رسانه‌ای خانواده" (family_media_contract)
+//
+// REDESIGN (client directive, warm/pedagogical over legal): the pedagogical
+// weight of the text must far outweigh its legal weight. This is a
+// heartfelt family PACT built on shared values and mutual commitment, not
+// a dry legal contract for a courtroom. Concretely:
+//   - clauses are MUTUAL/bidirectional (a parent-commitment text AND a
+//     child-commitment text per topic, both phrased as agreement — "ما
+//     توافق می‌کنیم"/"من متعهد می‌شوم" — never "ممنوع است"/"ملزم است"),
+//   - the pact opens with 3-5 shared FAMILY_VALUES chosen together, and
+//     the intro paragraph is generated FROM those values,
+//   - "جریمه" (penalty) is replaced entirely by "راه‌حل جبرانی" (a
+//     restorative/reparative action chosen together, e.g. helping with a
+//     chore or a voluntary digital-rest day) — never punitive language.
 // ==========================================================================
 
 export interface FamilyMemberInput {
@@ -38,21 +52,35 @@ export interface FamilyMemberInput {
 
 export interface FamilyAgreementInput {
   familyMembers: FamilyMemberInput[]
+  familyValueKeys: string[] // 3-5 keys from FAMILY_VALUES, chosen together before the rules
   devices: string[] // e.g. 'mobile' | 'tablet' | 'tv' | 'console' | 'laptop'
-  sensitiveSituations: string[] // fixed catalogue keys, see SENSITIVE_SITUATIONS below
-  parentCommitments: string[]
-  childCommitments: string[]
+  selectedClauseKeys: string[] // fixed mutual-clause topics, see CLAUSE_LIBRARY below
+  customParentCommitments: string[] // free-text additions, in the same "ما توافق می‌کنیم" spirit
+  customChildCommitments: string[]
+  restorativeActionKeys: string[] // agreed-upon repair actions, see RESTORATIVE_ACTIONS below — replaces "penalty"
   reviewDate: string // ISO date (YYYY-MM-DD), monthly review
+}
+
+export interface FamilyAgreementClauseResult {
+  key: string
+  topicLabelFa: string
+  parentTextFa: string
+  childTextFa: string
 }
 
 export interface FamilyAgreementResult {
   familyMembers: FamilyMemberInput[]
+  familyValuesFa: string[]
   devices: string[]
-  sensitiveSituationLabels: string[]
-  parentCommitments: string[]
-  childCommitments: string[]
+  clauses: FamilyAgreementClauseResult[]
+  customParentCommitments: string[]
+  customChildCommitments: string[]
+  restorativeActionsFa: string[]
   reviewDate: string
-  summaryFa: string
+  signDateFa: string // Jalali date the pact was drawn up (today, unless overridden for tests)
+  introFa: string // generated from the chosen family values, spec-mandated opening wording
+  closingFa: string // warm, fixed closing statement (the pact's "مؤخره")
+  summaryFa: string // short note about the monthly review rhythm
 }
 
 export const DEVICE_OPTIONS: { key: string; labelFa: string }[] = [
@@ -64,35 +92,130 @@ export const DEVICE_OPTIONS: { key: string; labelFa: string }[] = [
   { key: 'smartwatch', labelFa: 'ساعت هوشمند' },
 ]
 
-export const SENSITIVE_SITUATIONS: { key: string; labelFa: string }[] = [
-  { key: 'bedtime_screens', labelFa: 'استفاده از صفحه‌نمایش پیش از خواب' },
-  { key: 'stranger_contact', labelFa: 'ارتباط با افراد ناشناس در فضای مجازی' },
-  { key: 'in_app_purchases', labelFa: 'خریدهای درون‌برنامه‌ای بدون اجازه' },
-  { key: 'inappropriate_content', labelFa: 'مواجهه با محتوای نامناسب' },
-  { key: 'screen_time_conflict', labelFa: 'اختلاف بر سر مدت‌زمان استفاده از صفحه' },
-  { key: 'social_media_pressure', labelFa: 'فشار اجتماعی شبکه‌های اجتماعی' },
-  { key: 'family_time_screens', labelFa: 'استفاده از موبایل در زمان دورهمی خانواده' },
+/** Shared family values, chosen 3-5 together at the start of the pact (client directive §2). */
+export const FAMILY_VALUES: { key: string; labelFa: string }[] = [
+  { key: 'trust', labelFa: 'اعتماد' },
+  { key: 'calm', labelFa: 'آرامش' },
+  { key: 'respect', labelFa: 'احترام' },
+  { key: 'health', labelFa: 'سلامتی' },
+  { key: 'learning', labelFa: 'یادگیری' },
+  { key: 'honesty', labelFa: 'صداقت' },
+  { key: 'responsibility', labelFa: 'مسئولیت‌پذیری' },
+  { key: 'empathy', labelFa: 'همدلی' },
 ]
+export const FAMILY_VALUES_MIN = 3
+export const FAMILY_VALUES_MAX = 5
+
+/**
+ * Mutual/bidirectional clause library (client directive §1): every topic
+ * carries a parent-side commitment AND a child-side commitment, both
+ * phrased as agreement ("ما توافق می‌کنیم" / "من متعهد می‌شوم"), never as
+ * a one-sided rule imposed on the child.
+ */
+export const CLAUSE_LIBRARY: FamilyAgreementClauseResult[] = [
+  {
+    key: 'screen_time',
+    topicLabelFa: 'زمان استفاده از صفحه‌ها',
+    parentTextFa: 'ما توافق می‌کنیم زمان مشخصی برای استفاده از دستگاه‌ها تعیین کنیم و در اجرای آن، با آرامش و بدون فریاد، کنار فرزندمان باشیم.',
+    childTextFa: 'من متعهد می‌شوم به ساعت توافق‌شده برای استفاده از گوشی/تبلت پایبند باشم و اگر به زمان بیشتری نیاز دارم، به‌جای مخفی‌کاری، از والدینم بخواهم.',
+  },
+  {
+    key: 'family_time',
+    topicLabelFa: 'زمان خانوادگی بدون دستگاه',
+    parentTextFa: 'ما توافق می‌کنیم در زمان‌های دورهمی خانواده (مثل سر میز غذا)، گوشی خودمان را هم کنار بگذاریم.',
+    childTextFa: 'من متعهد می‌شوم در زمان‌های دورهمی خانواده، گوشی یا تبلت را کنار بگذارم و در گفت‌وگوی خانواده حضور واقعی داشته باشم.',
+  },
+  {
+    key: 'privacy_trust',
+    topicLabelFa: 'حریم خصوصی و اعتماد',
+    parentTextFa: 'ما توافق می‌کنیم به حریم شخصی فرزندمان احترام بگذاریم و بدون دلیل نگران‌کننده، پیام‌ها و گفت‌وگوهای خصوصی او را زیر نظر نگیریم.',
+    childTextFa: 'من متعهد می‌شوم اگر در فضای مجازی با موضوعی نگران‌کننده مواجه شدم، آن را با اعتماد کامل با والدینم در میان بگذارم.',
+  },
+  {
+    key: 'strangers_safety',
+    topicLabelFa: 'ارتباط با افراد ناشناس',
+    parentTextFa: 'ما توافق می‌کنیم بدون قضاوت یا سرزنش، همراه فرزندمان راه‌های امن ارتباط آنلاین را یاد بگیریم.',
+    childTextFa: 'من متعهد می‌شوم پیش از دوستی یا ادامهٔ گفت‌وگو با افراد ناشناس در فضای مجازی، به والدینم اطلاع دهم.',
+  },
+  {
+    key: 'content_appropriate',
+    topicLabelFa: 'محتوای مناسب سن',
+    parentTextFa: 'ما توافق می‌کنیم دربارهٔ محتوای متناسب با سن فرزندمان با او گفت‌وگو کنیم، نه فقط او را محدود کنیم.',
+    childTextFa: 'من متعهد می‌شوم اگر با محتوای ناراحت‌کننده یا نامناسبی مواجه شدم، بدون ترس از سرزنش، آن را پیش والدینم بگویم.',
+  },
+  {
+    key: 'sleep_health',
+    topicLabelFa: 'خواب و سلامت',
+    parentTextFa: 'ما توافق می‌کنیم فضایی آرام برای خواب بدون صفحه‌نمایش در خانه ایجاد کنیم و خودمان هم آن را رعایت کنیم.',
+    childTextFa: 'من متعهد می‌شوم دستگاه‌هایم را در ساعت توافق‌شده پیش از خواب کنار بگذارم.',
+  },
+  {
+    key: 'purchases_money',
+    topicLabelFa: 'خریدهای درون‌برنامه‌ای و هزینه‌ها',
+    parentTextFa: 'ما توافق می‌کنیم دربارهٔ هزینه‌های دیجیتال با فرزندمان شفاف باشیم و با او دربارهٔ بودجهٔ خرید گفت‌وگو کنیم.',
+    childTextFa: 'من متعهد می‌شوم پیش از هر خرید یا پرداخت درون‌برنامه‌ای، از والدینم اجازه بگیرم.',
+  },
+]
+
+/**
+ * Restorative/reparative actions (client directive §3): replaces the word
+ * "جریمه" (penalty) entirely. When someone drifts from the pact, the
+ * family decides TOGETHER on one of these — never a unilateral punishment.
+ */
+export const RESTORATIVE_ACTIONS: { key: string; labelFa: string }[] = [
+  { key: 'help_housework', labelFa: 'کمک در یکی از کارهای خانه (مثل شستن ظرف‌ها یا جمع‌کردن اتاق)' },
+  { key: 'digital_rest_day', labelFa: 'یک روز «استراحت دیجیتال» داوطلبانه از یک برنامه یا بازی خاص' },
+  { key: 'kindness_note', labelFa: 'نوشتن یا گفتن یک پیام کوچک دلجویی به عضو دیگر خانواده' },
+  { key: 'family_talk', labelFa: 'یک گفت‌وگوی کوتاه و آرام خانوادگی دربارهٔ چه‌اتفاقی افتاد و چرا' },
+  { key: 'kind_gesture', labelFa: 'انجام یک کار مهربانانه برای یکی از اعضای خانواده' },
+]
+
+const FAMILY_AGREEMENT_CLOSING_FA =
+  'ما با امضای این برگه، قول می‌دهیم هوای هم را داشته باشیم و اگر جایی اشتباه کردیم، با مهربانی به هم یادآوری کنیم.'
 
 function labelFor(list: { key: string; labelFa: string }[], key: string): string {
   return list.find((i) => i.key === key)?.labelFa ?? key
 }
 
-export function computeFamilyAgreementResult(input: FamilyAgreementInput): FamilyAgreementResult {
-  const sensitiveSituationLabels = input.sensitiveSituations.map((k) => labelFor(SENSITIVE_SITUATIONS, k))
-  const memberNames = input.familyMembers.map((m) => m.name).filter(Boolean).join('، ')
+function clauseFor(key: string): FamilyAgreementClauseResult {
+  const found = CLAUSE_LIBRARY.find((c) => c.key === key)
+  return (
+    found ?? {
+      key,
+      topicLabelFa: key,
+      parentTextFa: 'ما توافق می‌کنیم با هم دربارهٔ این موضوع گفت‌وگو کنیم.',
+      childTextFa: 'من متعهد می‌شوم با هم دربارهٔ این موضوع گفت‌وگو کنیم.',
+    }
+  )
+}
 
-  const summaryFa = `این توافق‌نامه با مشارکت ${input.familyMembers.length} عضو خانواده${
-    memberNames ? ` (${memberNames})` : ''
-  } تنظیم شده و هر ماه، در تاریخ مشخص‌شده، بازبینی و در صورت نیاز به‌روزرسانی می‌شود.`
+export function computeFamilyAgreementResult(input: FamilyAgreementInput, now: Date = new Date()): FamilyAgreementResult {
+  const familyValuesFa = input.familyValueKeys.map((k) => labelFor(FAMILY_VALUES, k))
+  const clauses = input.selectedClauseKeys.map((k) => clauseFor(k))
+  const restorativeActionsFa = input.restorativeActionKeys.map((k) => labelFor(RESTORATIVE_ACTIONS, k))
+  const memberNames = input.familyMembers.map((m) => m.name).filter(Boolean).join('، ')
+  const signDateFa = formatJalaliDateFa(now)
+
+  const introFa =
+    `این پیمان‌نامه در تاریخ ${signDateFa} میان اعضای خانواده${memberNames ? ` ${memberNames}` : ' ما'} بسته می‌شود ` +
+    `تا با کمک هم، فضای دیجیتال خانه‌مان امن‌تر، آرام‌تر و شادتر شود. ما امضاکنندگان زیر، با باور به ارزش‌های ${
+      familyValuesFa.length ? familyValuesFa.join('، ') : 'خانوادگی‌مان'
+    }، متعهد می‌شویم به آنچه در پی می‌آید، با مهربانی و پشتکار عمل کنیم.`
+
+  const summaryFa = `این پیمان‌نامه هر ماه، در تاریخ ${input.reviewDate}، با آرامش و همراه هم بازبینی می‌شود تا هر زمان لازم بود، با توافق تازه‌ای همراه شود.`
 
   return {
     familyMembers: input.familyMembers,
+    familyValuesFa,
     devices: input.devices,
-    sensitiveSituationLabels,
-    parentCommitments: input.parentCommitments,
-    childCommitments: input.childCommitments,
+    clauses,
+    customParentCommitments: input.customParentCommitments,
+    customChildCommitments: input.customChildCommitments,
+    restorativeActionsFa,
     reviewDate: input.reviewDate,
+    signDateFa,
+    introFa,
+    closingFa: FAMILY_AGREEMENT_CLOSING_FA,
     summaryFa,
   }
 }

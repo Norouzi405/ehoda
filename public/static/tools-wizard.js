@@ -89,6 +89,18 @@
   function validateStep(step) {
     var activeSection = form.querySelector('section[data-step="' + step + '"]');
     if (!activeSection) return true;
+
+    // Family agreement, step 1: 3-5 shared family values must be chosen
+    // together before the rules (client directive §2).
+    var valuesGroup = activeSection.querySelector('#family-values-group');
+    if (valuesGroup) {
+      var checkedValues = valuesGroup.querySelectorAll('input[name="familyValueKeys"]:checked');
+      if (checkedValues.length < 3 || checkedValues.length > 5) {
+        alert('لطفاً بین ۳ تا ۵ ارزش خانوادگی را انتخاب کنید.');
+        return false;
+      }
+    }
+
     var requiredFields = activeSection.querySelectorAll('[required]');
     for (var i = 0; i < requiredFields.length; i++) {
       var f = requiredFields[i];
@@ -219,15 +231,24 @@
     if (!box) return;
     var html = '';
     if (toolSlug === 'family_media_contract') {
-      html += '<h3 class="font-bold text-stone-800 mb-2">اعضای خانواده</h3><ul class="list-disc pr-5 mb-4">' +
+      html += '<p class="italic text-stone-600 bg-teal-50/60 border border-teal-100 rounded-xl p-3 mb-4">' + result.introFa + '</p>';
+      html += '<h3 class="font-bold text-stone-800 mb-2">اعضای امضاکننده</h3><ul class="list-disc pr-5 mb-4">' +
         result.familyMembers.map(function (m) { return '<li>' + m.name + ' (' + (m.role === 'parent' ? 'والد' : 'فرزند') + ')</li>'; }).join('') + '</ul>';
-      html += '<h3 class="font-bold text-stone-800 mb-2">موقعیت‌های حساس</h3><ul class="list-disc pr-5 mb-4">' +
-        result.sensitiveSituationLabels.map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ul>';
-      html += '<h3 class="font-bold text-stone-800 mb-2">تعهدهای والدین</h3><ul class="list-disc pr-5 mb-4">' +
-        result.parentCommitments.map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ul>';
-      html += '<h3 class="font-bold text-stone-800 mb-2">تعهدهای فرزند</h3><ul class="list-disc pr-5 mb-4">' +
-        result.childCommitments.map(function (s) { return '<li>' + s + '</li>'; }).join('') + '</ul>';
-      html += '<p class="text-stone-600">' + result.summaryFa + '</p>';
+      html += '<h3 class="font-bold text-stone-800 mb-2">تعهدهای دوطرفه</h3><div class="space-y-2 mb-4">' +
+        result.clauses.map(function (c) {
+          return '<div class="border border-stone-200 rounded-xl p-3"><p class="font-bold text-stone-700 mb-1">' + c.topicLabelFa + '</p>' +
+            '<p class="text-xs text-stone-500 mb-0.5">والدین: ' + c.parentTextFa + '</p>' +
+            '<p class="text-xs text-stone-500">فرزند: ' + c.childTextFa + '</p></div>';
+        }).join('') + '</div>';
+      if (result.customParentCommitments.length || result.customChildCommitments.length) {
+        html += '<h3 class="font-bold text-stone-800 mb-2">تعهدهای تکمیلی</h3><ul class="list-disc pr-5 mb-4">' +
+          result.customParentCommitments.map(function (s) { return '<li>والدین: ' + s + '</li>'; }).join('') +
+          result.customChildCommitments.map(function (s) { return '<li>فرزند: ' + s + '</li>'; }).join('') + '</ul>';
+      }
+      html += '<h3 class="font-bold text-stone-800 mb-2">راه‌حل جبرانی در صورت سرپیچی</h3><ul class="list-disc pr-5 mb-4">' +
+        (result.restorativeActionsFa.length ? result.restorativeActionsFa.map(function (s) { return '<li>' + s + '</li>'; }).join('') : '<li>موردی انتخاب نشد</li>') + '</ul>';
+      html += '<p class="text-stone-600 mb-3">' + result.summaryFa + '</p>';
+      html += '<p class="font-bold text-teal-800">' + result.closingFa + '</p>';
     } else if (toolSlug === 'phone_readiness_checklist') {
       html += '<p class="mb-3"><span class="font-bold">نتیجهٔ کلی:</span> ' + result.verdictLabelFa + ' (میانگین ' + result.overallScore.toFixed(1) + ' از ۵)</p>';
       html += '<h3 class="font-bold text-stone-800 mb-2">پیشنهادهای عملی</h3><ul class="list-disc pr-5">' +
@@ -285,10 +306,12 @@
     if (toolSlug === 'family_media_contract') {
       payload = {
         familyMembers: collectFamilyMembers(),
+        familyValueKeys: collectCheckedValues('familyValueKeys'),
         devices: collectCheckedValues('devices'),
-        sensitiveSituations: collectCheckedValues('sensitiveSituations'),
-        parentCommitments: collectLines('parentCommitmentsText'),
-        childCommitments: collectLines('childCommitmentsText'),
+        selectedClauseKeys: collectCheckedValues('selectedClauseKeys'),
+        customParentCommitments: collectLines('customParentCommitmentsText'),
+        customChildCommitments: collectLines('customChildCommitmentsText'),
+        restorativeActionKeys: collectCheckedValues('restorativeActionKeys'),
         reviewDate: (form.querySelector('[name="reviewDate"]') || {}).value || '',
       };
     } else {

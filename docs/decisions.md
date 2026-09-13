@@ -265,3 +265,64 @@ brief — exactly how to reverse/replace it during a VPS migration.
   HMAC-SHA256 scheme with constant-time comparison). This keeps exactly
   one signed-download code path to audit/migrate instead of two
   divergent ones.
+
+### D-015 — `family_media_contract` redesigned as a warm/pedagogical "پیمان‌نامه", not a legal contract
+- **Context**: client feedback on the first Phase 3 build of the family
+  media tool: the pedagogical/emotional weight of the text must be far
+  greater than its legal weight. The goal is a warm, understanding-based
+  family **pact**, not a dry legal document meant for a courtroom.
+- **Decision — 4 concrete changes, all implemented in
+  `src/services/tool.service.ts`**:
+  1. **Tone: agreement, not command.** Every clause in the new
+     `CLAUSE_LIBRARY` catalogue is phrased as mutual agreement ("ما
+     توافق می‌کنیم..." for the parent side, "من متعهد می‌شوم..." for the
+     child side) — never imperative/prohibitive language ("ممنوع
+     است"/"ملزم است"). Clauses are structurally bidirectional: each
+     topic (screen time, family time, privacy/trust, strangers, content,
+     sleep, purchases) carries BOTH a parent commitment and a child
+     commitment, so the child never experiences the pact as one-sided
+     surveillance.
+  2. **New "family values" step, first.** Before any rule, step 1 of the
+     wizard has the family choose 3-5 shared values together
+     (`FAMILY_VALUES` catalogue: اعتماد/آرامش/احترام/سلامتی/یادگیری/
+     صداقت/مسئولیت‌پذیری/همدلی — `FAMILY_VALUES_MIN=3`,
+     `FAMILY_VALUES_MAX=5`, enforced both client-side and by the Zod
+     schema in `tools.api.ts`). The opening paragraph (`introFa`) is
+     generated FROM those chosen values using the client's exact
+     mandated wording.
+  3. **"جریمه" (penalty) removed entirely, replaced by "راه‌حل جبرانی"**
+     (restorative/reparative action). New `RESTORATIVE_ACTIONS`
+     catalogue (help with a chore, a voluntary digital-rest day, a
+     kindness note, a calm family talk, a kind gesture) — chosen
+     TOGETHER in step 4, never imposed unilaterally. The word "جریمه"
+     does not appear anywhere in the generated text or catalogues
+     (asserted by a dedicated Vitest test).
+  4. **Fixed intro/closing wording**, used verbatim regardless of the
+     family's other choices: intro anchors on "این پیمان‌نامه در تاریخ
+     ... بسته می‌شود تا با کمک هم، فضای دیجیتال خانه‌مان امن‌تر،
+     آرام‌تر و شادتر شود"; closing is the exact fixed string "ما با
+     امضای این برگه، قول می‌دهیم هوای هم را داشته باشیم و اگر جایی
+     اشتباه کردیم، با مهربانی به هم یادآوری کنیم." (never paraphrased,
+     to guarantee the client's exact requested tone survives any future
+     content edit).
+- **Renamed accordingly**: tool title changed from "قرارداد رسانه‌ای
+  خانواده" (media *contract*) to "پیمان‌نامهٔ رسانه‌ای خانواده" (media
+  *pact*) everywhere — page title, nav/homepage links, `tools.title_fa`
+  seed row (via an idempotent `UPDATE` in `seeders/seed.sql`, since
+  `INSERT OR IGNORE` alone wouldn't touch an already-seeded row), and the
+  PDF document title. The DB `slug` (`family_media_contract`) and route
+  path (`/tools/family-agreement`) were deliberately left unchanged —
+  renaming those would be a breaking change to any already-saved
+  submission's stored `toolId` reference and to the public URL, with no
+  benefit to the wording goal.
+- **Breaking input shape change, but pre-launch**: `FamilyAgreementInput`
+  gained `familyValueKeys`/`selectedClauseKeys`/`restorativeActionKeys`
+  and dropped the old free-text-only `sensitiveSituations`/
+  `parentCommitments`/`childCommitments` fields (the old free-text
+  parent/child commitment fields survive as *optional* additions —
+  `customParentCommitments`/`customChildCommitments` — layered on top of
+  the structured mutual clauses, not replacing them). Since this tool
+  had not yet been used by real end users (Phase 3 was still in
+  client-review), no data-migration path was written for old
+  `tool_submissions.answers_json` rows — flagged here in case any exist
+  in a shared environment before this redesign shipped.

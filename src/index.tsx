@@ -151,8 +151,8 @@ app.get('/', async (c) => {
               <div class="w-10 h-10 rounded-xl bg-teal-800/10 text-teal-800 flex items-center justify-center mb-3">
                 <i class="fas fa-file-signature"></i>
               </div>
-              <h3 class="font-extrabold text-stone-800 mb-2">قرارداد رسانه‌ای خانواده</h3>
-              <p class="text-stone-500 text-sm">توافق‌نامهٔ شخصی‌سازی‌شده برای استفاده از رسانه در خانواده، با بازبینی ماهانه.</p>
+              <h3 class="font-extrabold text-stone-800 mb-2">پیمان‌نامهٔ رسانه‌ای خانواده</h3>
+              <p class="text-stone-500 text-sm">پیمان‌نامه‌ای گرم و مبتنی بر تفاهم — با ارزش‌های مشترک، تعهدهای دوطرفه و بازبینی ماهانه.</p>
             </a>
             <a href="/tools/phone-readiness" class="soft-card block bg-white rounded-2xl border border-stone-200/70 shadow-sm hover:shadow-md p-6">
               <div class="w-10 h-10 rounded-xl bg-teal-800/10 text-teal-800 flex items-center justify-center mb-3">

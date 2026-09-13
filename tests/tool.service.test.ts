@@ -4,6 +4,9 @@ import {
   computeFamilyAgreementResult,
   computePhoneReadinessResult,
   computeMediaStyleResult,
+  FAMILY_VALUES,
+  CLAUSE_LIBRARY,
+  RESTORATIVE_ACTIONS,
 } from '../src/services/tool.service'
 import type { ToolRepository, ToolRecord, ToolSubmissionRecord, CreateSubmissionInput } from '../src/repositories/tool.repository'
 
@@ -39,19 +42,89 @@ function fakeRepo(overrides: Partial<ToolRepository> = {}): ToolRepository {
   }
 }
 
-describe('computeFamilyAgreementResult', () => {
-  it('builds a summary mentioning all family members', () => {
-    const result = computeFamilyAgreementResult({
-      familyMembers: [{ name: 'مادر', role: 'parent' }, { name: 'آرش', role: 'child' }],
-      devices: ['mobile', 'tablet'],
-      sensitiveSituations: ['bedtime_screens'],
-      parentCommitments: ['a'],
-      childCommitments: ['b'],
-      reviewDate: '2026-01-01',
-    })
-    expect(result.sensitiveSituationLabels).toEqual(['استفاده از صفحه‌نمایش پیش از خواب'])
-    expect(result.summaryFa).toContain('2')
-    expect(result.summaryFa).toContain('مادر')
+/** Minimal valid family-agreement input builder, so each test only overrides what it cares about. */
+function baseFamilyAgreementInput(overrides: Record<string, unknown> = {}) {
+  return {
+    familyMembers: [{ name: 'مادر', role: 'parent' as const }, { name: 'آرش', role: 'child' as const }],
+    familyValueKeys: ['trust', 'calm', 'respect'],
+    devices: ['mobile', 'tablet'],
+    selectedClauseKeys: ['screen_time', 'family_time'],
+    customParentCommitments: [],
+    customChildCommitments: [],
+    restorativeActionKeys: ['help_housework'],
+    reviewDate: '2026-01-01',
+    ...overrides,
+  }
+}
+
+describe('computeFamilyAgreementResult — warm/pedagogical redesign', () => {
+  it('generates an intro paragraph from the chosen family values (client directive §2)', () => {
+    const result = computeFamilyAgreementResult(baseFamilyAgreementInput())
+    expect(result.familyValuesFa).toEqual(['اعتماد', 'آرامش', 'احترام'])
+    expect(result.introFa).toContain('اعتماد')
+    expect(result.introFa).toContain('آرامش')
+    expect(result.introFa).toContain('احترام')
+    // Exact spec wording anchors, not full-string match (allows minor phrasing flexibility).
+    expect(result.introFa).toContain('بسته می‌شود')
+    expect(result.introFa).toContain('امن‌تر، آرام‌تر و شادتر')
+  })
+
+  it('never uses imperative/prohibitive language ("ممنوع است"/"ملزم است") anywhere in generated text', () => {
+    const result = computeFamilyAgreementResult(baseFamilyAgreementInput())
+    const allText = [result.introFa, result.closingFa, result.summaryFa, ...result.clauses.flatMap((c) => [c.parentTextFa, c.childTextFa])].join(' ')
+    expect(allText).not.toContain('ممنوع است')
+    expect(allText).not.toContain('ملزم است')
+    expect(allText).not.toContain('جریمه')
+  })
+
+  it('resolves selected clause keys into mutual (parent + child) commitment text', () => {
+    const result = computeFamilyAgreementResult(baseFamilyAgreementInput())
+    expect(result.clauses).toHaveLength(2)
+    const screenTime = result.clauses.find((c) => c.key === 'screen_time')!
+    expect(screenTime.parentTextFa).toContain('ما توافق می‌کنیم')
+    expect(screenTime.childTextFa).toContain('من متعهد می‌شوم')
+  })
+
+  it('resolves restorative action keys into labels, never the word "جریمه"', () => {
+    const result = computeFamilyAgreementResult(baseFamilyAgreementInput())
+    expect(result.restorativeActionsFa).toEqual(['کمک در یکی از کارهای خانه (مثل شستن ظرف‌ها یا جمع‌کردن اتاق)'])
+  })
+
+  it('uses the exact mandated closing wording (client directive §4)', () => {
+    const result = computeFamilyAgreementResult(baseFamilyAgreementInput())
+    expect(result.closingFa).toBe('ما با امضای این برگه، قول می‌دهیم هوای هم را داشته باشیم و اگر جایی اشتباه کردیم، با مهربانی به هم یادآوری کنیم.')
+  })
+
+  it('includes custom (free-text) parent/child commitments when provided', () => {
+    const result = computeFamilyAgreementResult(
+      baseFamilyAgreementInput({ customParentCommitments: ['ما توافق می‌کنیم هفته‌ای یک شب بدون گوشی داشته باشیم.'], customChildCommitments: ['من متعهد می‌شوم قبل از خواب گوشی را بسپارم.'] }),
+    )
+    expect(result.customParentCommitments).toEqual(['ما توافق می‌کنیم هفته‌ای یک شب بدون گوشی داشته باشیم.'])
+    expect(result.customChildCommitments).toEqual(['من متعهد می‌شوم قبل از خواب گوشی را بسپارم.'])
+  })
+
+  it('falls back to a generic mutual clause if an unknown clause key is passed (defensive)', () => {
+    const result = computeFamilyAgreementResult(baseFamilyAgreementInput({ selectedClauseKeys: ['not_a_real_key'] }))
+    expect(result.clauses).toHaveLength(1)
+    expect(result.clauses[0].parentTextFa).toContain('ما توافق می‌کنیم')
+  })
+})
+
+describe('FAMILY_VALUES / CLAUSE_LIBRARY / RESTORATIVE_ACTIONS catalogues', () => {
+  it('exposes at least 5 family values to choose 3-5 from', () => {
+    expect(FAMILY_VALUES.length).toBeGreaterThanOrEqual(5)
+  })
+  it('every clause library entry has both a parent and a child commitment text', () => {
+    for (const clause of CLAUSE_LIBRARY) {
+      expect(clause.parentTextFa.length).toBeGreaterThan(0)
+      expect(clause.childTextFa.length).toBeGreaterThan(0)
+    }
+  })
+  it('no restorative action label uses punitive language', () => {
+    for (const action of RESTORATIVE_ACTIONS) {
+      expect(action.labelFa).not.toContain('جریمه')
+      expect(action.labelFa).not.toContain('تنبیه')
+    }
   })
 })
 
@@ -102,19 +175,13 @@ describe('computeMediaStyleResult', () => {
 describe('ToolService.submitFamilyAgreement', () => {
   it('does NOT persist a submission for anonymous (userId=null) preview', async () => {
     const service = createToolService(fakeRepo())
-    const { submissionId } = await service.submitFamilyAgreement(
-      { familyMembers: [{ name: 'A', role: 'parent' }], devices: [], sensitiveSituations: [], parentCommitments: [], childCommitments: [], reviewDate: '2026-01-01' },
-      null,
-    )
+    const { submissionId } = await service.submitFamilyAgreement(baseFamilyAgreementInput(), null)
     expect(submissionId).toBeNull()
   })
 
   it('persists a submission when a userId is present', async () => {
     const service = createToolService(fakeRepo())
-    const { submissionId } = await service.submitFamilyAgreement(
-      { familyMembers: [{ name: 'A', role: 'parent' }], devices: [], sensitiveSituations: [], parentCommitments: [], childCommitments: [], reviewDate: '2026-01-01' },
-      42,
-    )
+    const { submissionId } = await service.submitFamilyAgreement(baseFamilyAgreementInput(), 42)
     expect(submissionId).toBe(1)
   })
 })
@@ -123,10 +190,7 @@ describe('ToolService.getOwnedSubmission (ownership / privacy gate)', () => {
   it('denies access to a submission owned by a different user', async () => {
     const repo = fakeRepo()
     const service = createToolService(repo)
-    const { submissionId } = await service.submitFamilyAgreement(
-      { familyMembers: [{ name: 'A', role: 'parent' }], devices: [], sensitiveSituations: [], parentCommitments: [], childCommitments: [], reviewDate: '2026-01-01' },
-      42,
-    )
+    const { submissionId } = await service.submitFamilyAgreement(baseFamilyAgreementInput(), 42)
     const result = await service.getOwnedSubmission(submissionId!, 999, false)
     expect(result).toBeNull()
   })
@@ -134,10 +198,7 @@ describe('ToolService.getOwnedSubmission (ownership / privacy gate)', () => {
   it('allows the owner to access their own submission', async () => {
     const repo = fakeRepo()
     const service = createToolService(repo)
-    const { submissionId } = await service.submitFamilyAgreement(
-      { familyMembers: [{ name: 'A', role: 'parent' }], devices: [], sensitiveSituations: [], parentCommitments: [], childCommitments: [], reviewDate: '2026-01-01' },
-      42,
-    )
+    const { submissionId } = await service.submitFamilyAgreement(baseFamilyAgreementInput(), 42)
     const result = await service.getOwnedSubmission(submissionId!, 42, false)
     expect(result).not.toBeNull()
   })
@@ -145,10 +206,7 @@ describe('ToolService.getOwnedSubmission (ownership / privacy gate)', () => {
   it('allows admin override to access any submission regardless of owner', async () => {
     const repo = fakeRepo()
     const service = createToolService(repo)
-    const { submissionId } = await service.submitFamilyAgreement(
-      { familyMembers: [{ name: 'A', role: 'parent' }], devices: [], sensitiveSituations: [], parentCommitments: [], childCommitments: [], reviewDate: '2026-01-01' },
-      42,
-    )
+    const { submissionId } = await service.submitFamilyAgreement(baseFamilyAgreementInput(), 42)
     const result = await service.getOwnedSubmission(submissionId!, 999, true)
     expect(result).not.toBeNull()
   })

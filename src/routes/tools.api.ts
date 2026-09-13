@@ -37,10 +37,14 @@ const familyAgreementSchema = z.object({
       }),
     )
     .min(1),
+  // 3-5 shared family values, chosen together before the rules (client directive §2).
+  familyValueKeys: z.array(z.string()).min(3).max(5),
   devices: z.array(z.string()).default([]),
-  sensitiveSituations: z.array(z.string()).default([]),
-  parentCommitments: z.array(z.string()).default([]),
-  childCommitments: z.array(z.string()).default([]),
+  selectedClauseKeys: z.array(z.string()).default([]),
+  customParentCommitments: z.array(z.string()).default([]),
+  customChildCommitments: z.array(z.string()).default([]),
+  // Restorative/reparative actions — replaces "penalty" entirely (client directive §3).
+  restorativeActionKeys: z.array(z.string()).default([]),
   reviewDate: z.string().min(1),
 })
 

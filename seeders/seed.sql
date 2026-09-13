@@ -118,9 +118,17 @@ INSERT OR IGNORE INTO content_tags (slug, name_fa) VALUES
 
 -- ===================== Tools (spec §11) =====================
 INSERT OR IGNORE INTO tools (slug, title_fa, description, pdf_template_key) VALUES
-  ('family_media_contract', 'قرارداد رسانه‌ای خانواده', 'توافق شخصی‌سازی‌شده برای استفاده از رسانه در خانواده', 'family_media_contract_v1'),
+  ('family_media_contract', 'پیمان‌نامهٔ رسانه‌ای خانواده', 'پیمان‌نامهٔ گرم و مبتنی بر تفاهم برای فضای دیجیتال خانواده، با ارزش‌های مشترک و تعهدهای دوطرفه', 'family_media_contract_v1'),
   ('phone_readiness_checklist', 'چک‌لیست آمادگی دریافت گوشی شخصی', 'ارزیابی چندبعدی آمادگی فرزند برای دریافت گوشی شخصی', 'phone_readiness_checklist_v1'),
   ('media_style_quiz', 'آزمون سبک رسانه‌ای خانواده', 'شناسایی نقاط قوت و حوزه‌های نیازمند توجه در سبک رسانه‌ای خانواده', 'media_style_quiz_v1');
+
+-- Redesign (warm/pedagogical over legal, see decisions.md D-015): update
+-- the title/description for existing installations too (INSERT OR IGNORE
+-- above only fires for a brand-new row).
+UPDATE tools SET
+  title_fa = 'پیمان‌نامهٔ رسانه‌ای خانواده',
+  description = 'پیمان‌نامهٔ گرم و مبتنی بر تفاهم برای فضای دیجیتال خانواده، با ارزش‌های مشترک و تعهدهای دوطرفه'
+WHERE slug = 'family_media_contract';
 
 -- ===================== Settings defaults (spec §12.1, admin-editable) =====================
 INSERT OR IGNORE INTO settings (key, value_json, description) VALUES

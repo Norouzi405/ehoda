@@ -22,37 +22,56 @@ function deviceLabels(keys: string[]): string[] {
 }
 
 export function buildFamilyAgreementPdfDoc(result: FamilyAgreementResult, generatedAt: Date = new Date()): PdfDocumentInput {
+  const clauseLines = result.clauses.flatMap((c) => [`${c.topicLabelFa} — تعهد والدین: ${c.parentTextFa}`, `${c.topicLabelFa} — تعهد فرزند: ${c.childTextFa}`])
+
+  const sections: PdfDocumentInput['sections'] = [
+    {
+      heading: 'ارزش‌های مشترک خانواده',
+      paragraphs: [result.introFa],
+      list: result.familyValuesFa,
+    },
+    {
+      heading: 'اعضای امضاکننده',
+      list: result.familyMembers.map((m) => `${m.name} (${m.role === 'parent' ? 'والد' : 'فرزند'})`),
+    },
+    {
+      heading: 'دستگاه‌های تحت پوشش این پیمان‌نامه',
+      list: deviceLabels(result.devices),
+    },
+    {
+      heading: 'تعهدات دوطرفه (والدین و فرزند)',
+      list: clauseLines,
+    },
+  ]
+
+  if (result.customParentCommitments.length || result.customChildCommitments.length) {
+    sections.push({
+      heading: 'تعهدات تکمیلی خانواده',
+      list: [
+        ...result.customParentCommitments.map((c) => `والدین: ${c}`),
+        ...result.customChildCommitments.map((c) => `فرزند: ${c}`),
+      ],
+    })
+  }
+
+  sections.push(
+    {
+      heading: 'اگر روزی از این پیمان فاصله گرفتیم...',
+      paragraphs: ['به‌جای جریمه، با همفکری هم یک راه‌حل جبرانی و ترمیمی انتخاب می‌کنیم، مثل:'],
+      list: result.restorativeActionsFa.length ? result.restorativeActionsFa : ['یک گفت‌وگوی کوتاه و آرام خانوادگی'],
+    },
+    {
+      heading: 'بازبینی ماهانه',
+      paragraphs: [result.summaryFa],
+    },
+  )
+
   return {
-    title: 'قرارداد رسانه‌ای خانواده',
-    subtitle: 'تنظیم‌شده به‌صورت شخصی‌سازی‌شده — پلتفرم «خانواده و رسانه»',
-    generatedAtFa: formatJalaliDateFa(generatedAt),
-    sections: [
-      {
-        heading: 'اعضای خانواده',
-        list: result.familyMembers.map((m) => `${m.name} (${m.role === 'parent' ? 'والد' : 'فرزند'})`),
-      },
-      {
-        heading: 'دستگاه‌های تحت پوشش این توافق',
-        list: deviceLabels(result.devices),
-      },
-      {
-        heading: 'موقعیت‌های حساس شناسایی‌شده',
-        list: result.sensitiveSituationLabels,
-      },
-      {
-        heading: 'تعهدهای والدین',
-        list: result.parentCommitments,
-      },
-      {
-        heading: 'تعهدهای فرزند',
-        list: result.childCommitments,
-      },
-      {
-        heading: 'زمان بازبینی ماهانه',
-        paragraphs: [`این توافق در تاریخ ${result.reviewDate} و سپس هر ماه یک‌بار، با حضور همهٔ اعضا بازبینی می‌شود.`, result.summaryFa],
-      },
-    ],
-    footerNote: 'این سند صرفاً جهت راهنمایی خانواده تهیه شده و جای مشاوره تخصصی را نمی‌گیرد.',
+    title: 'پیمان‌نامهٔ رسانه‌ای خانواده',
+    subtitle: 'ساخته‌شده با ارزش‌ها و همدلی — پلتفرم «خانواده و رسانه»',
+    generatedAtFa: result.signDateFa || formatJalaliDateFa(generatedAt),
+    sections,
+    footerNote: result.closingFa,
   }
 }
 

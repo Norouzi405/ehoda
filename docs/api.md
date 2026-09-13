@@ -251,9 +251,35 @@ user-linked) and can request a PDF. Tool slugs (DB `tools.slug`, matches
 
 | Page route | Tool slug | Steps | Verdict/output |
 | --- | --- | --- | --- |
-| `/tools/family-agreement` | `family_media_contract` | 3 | خلاصهٔ توافق‌نامه + تاریخ بازبینی ماهانه |
+| `/tools/family-agreement` | `family_media_contract` | 4 (values → members/devices → mutual clauses → restorative actions/review) | متن کامل پیمان‌نامه (مقدمه از روی ارزش‌ها، تعهدهای دوطرفه، مؤخره) |
 | `/tools/phone-readiness` | `phone_readiness_checklist` | 4 (1 per axis) | `ready` \| `conditionally_ready` \| `needs_more_practice` |
 | `/tools/media-style-quiz` | `media_style_quiz` | 5 (1 per axis) | نقاط قوت/چالش + برنامهٔ عملی ۷ روزه |
+
+**`family_media_contract` redesign (warm/pedagogical over legal — see
+`decisions.md` D-015):** this tool is deliberately NOT a dry legal
+contract. Its `computeFamilyAgreementResult()` output
+(`src/services/tool.service.ts`) is structured as:
+- `familyValuesFa`: 3-5 shared family values chosen together in step 1
+  (`FAMILY_VALUES` catalogue — trust/calm/respect/health/learning/...).
+- `introFa`: auto-generated opening paragraph woven from those values
+  (mandated wording: "این پیمان‌نامه در تاریخ ... بسته می‌شود تا با کمک
+  هم، فضای دیجیتال خانه‌مان امن‌تر، آرام‌تر و شادتر شود... با باور به
+  ارزش‌های ...، متعهد می‌شویم...").
+- `clauses`: MUTUAL/bidirectional commitments — every topic in the
+  `CLAUSE_LIBRARY` catalogue carries both a `parentTextFa` ("ما توافق
+  می‌کنیم...") and a `childTextFa` ("من متعهد می‌شوم..."); imperative
+  phrasing ("ممنوع است"/"ملزم است") is never used.
+- `restorativeActionsFa`: chosen from the `RESTORATIVE_ACTIONS`
+  catalogue — replaces "جریمه" (penalty) entirely with a jointly-decided
+  reparative action (helping with a chore, a voluntary digital-rest day,
+  etc.).
+- `closingFa`: fixed mandated closing line ("ما با امضای این برگه، قول
+  می‌دهیم هوای هم را داشته باشیم و اگر جایی اشتباه کردیم، با مهربانی به
+  هم یادآوری کنیم.").
+The PDF template (`buildFamilyAgreementPdfDoc` in `tool-pdf.service.ts`)
+renders this same structure with the intro as an opening paragraph, each
+clause topic showing both the parent's and child's commitment text, and
+the closing line as the document's footer note.
 
 ### `GET /tools/family-agreement`, `/tools/phone-readiness`, `/tools/media-style-quiz`
 SSR wizard pages (`src/routes/tools.pages.tsx`). No auth required to view
